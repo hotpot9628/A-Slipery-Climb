@@ -56,7 +56,10 @@ def _migrate_old_files():
                 pass
 
 
-if USER_DIR != BASE_DIR:
+# Only packaged builds migrate the old files: when running from source the
+# project folder may still hold development data, and copying that into
+# %APPDATA% would make a "fresh" game show progress that was never earned.
+if USER_DIR != BASE_DIR and getattr(sys, "frozen", False):
     _migrate_old_files()
 
 
