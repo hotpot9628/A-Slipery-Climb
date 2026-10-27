@@ -36,7 +36,7 @@ ride the moving platforms up the mountain.
 |---|---|---|
 | **Windows** | [ASliperyClimb_Windows.zip](../../releases/latest/download/ASliperyClimb_Windows.zip) | unpack, run `A Slipery Climb.exe` |
 | **macOS** | [ASliperyClimb_macOS.zip](../../releases/latest/download/ASliperyClimb_macOS.zip) | unpack, open `A Slipery Climb.app` |
-| **Linux** (any distro) | [ASliperyClimb_Linux.tar.gz](../../releases/latest/download/ASliperyClimb_Linux.tar.gz) | `tar -xzf ASliperyClimb_Linux.tar.gz`, then run `A Slipery Climb/A Slipery Climb` |
+| **Linux** (any distro) | [ASliperyClimb_Linux.tar.gz](../../releases/latest/download/ASliperyClimb_Linux.tar.gz) | unpack, run `A Slipery Climb/A Slipery Climb` |
 | **Linux** (deb) | [Releases page](../../releases/latest) | `sudo apt install ./asliperyclimb_*.deb` |
 | **Linux** (rpm) | [Releases page](../../releases/latest) | `sudo dnf install ./asliperyclimb-*.rpm` |
 
@@ -62,32 +62,38 @@ No Python or pygame installation is needed: the builds are self-contained.
 
 Remove that folder to reset settings, achievements and all saves.
 
-## Build from source
-pip install pygame python main.py
+## Run from source
 
-代码块
-
-
+- Install pygame: `pip install pygame`
+- Start the game: `python main.py`
 
 Python 3.11+ and pygame 2.6 are required.
 
-### Build the release packages
+## Build the release packages
 
-**Windows** (from the project folder):
-python -m PyInstaller --noconfirm --clean --onefile --windowed ^ --name "A Slipery Climb" --icon icon.ico ^ --add-data "textures;textures" --add-data "sounds;sounds" main.py
+**Windows** — run this one line in the project folder:
 
+`python -m PyInstaller --noconfirm --clean --onefile --windowed --name "A Slipery Climb" --icon icon.ico --add-data "textures;textures" --add-data "sounds;sounds" main.py`
 
-
-
-**macOS / Linux / deb / rpm**: push a tag (for example `v1.0.1`) — the GitHub
+**macOS / Linux / deb / rpm** — push a tag (for example `v1.0.1`): the GitHub
 Actions workflow in `.github/workflows/build.yml` builds every platform and
 attaches the packages to that release automatically.
 
 ## Project layout
-main.py game (fixed hand-made level + all systems) achievements.py leveled achievements, 9 languages backdrop.py distant mountain backdrop and summit plateau chatter.py idle chatter lines flavor.py one-time tutorials + fall taunts i18n.py 9-language strings, font selection paths.py asset / user-data path resolution textures/ sprites and terrain tiles sounds/ music and effects icon.ico icon .github/workflows/build.yml CI: Windows, macOS, Linux, deb, rpm
 
-
-
+| Path | Purpose |
+|---|---|
+| `main.py` | the game: fixed hand-made level and all systems |
+| `achievements.py` | leveled achievements, 9 languages |
+| `backdrop.py` | distant mountain backdrop and summit plateau |
+| `chatter.py` | idle chatter lines |
+| `flavor.py` | one-time tutorials and fall taunts |
+| `i18n.py` | 9-language strings and font selection |
+| `paths.py` | asset and user-data path resolution |
+| `textures/` | sprites and terrain tiles |
+| `sounds/` | music and sound effects |
+| `icon.ico` | application icon |
+| `.github/workflows/build.yml` | CI: Windows, macOS, Linux, deb, rpm |
 
 ![summit](screenshots/summit.png)
 
