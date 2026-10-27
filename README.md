@@ -30,7 +30,7 @@ moving platforms up the mountain.
 
 ## Install
 
-1. Open the [Releases](../../releases) page and download `ASliperyClimb_Windows_v1.0.zip`.
+1. Open the [Releases](../../releases) page and download `ASliperyClimb_Windows.zip`.
 2. Unpack it anywhere.
 3. Run `A Slipery Climb.exe`. No installation and no Python needed.
 
@@ -52,7 +52,7 @@ Settings, achievements and saves are stored in `%APPDATA%\A Slipery Climb`.
 - 开场 / 通关过场（可跳过）、随机闲聊、带等级的成就
 - 5 个存档位，通关会删掉该存档
 
-**下载**：到 [Releases](../../releases) 页面下 `ASliperyClimb_Windows_v1.0.zip`，解压后双击
+**下载**：到 [Releases](../../releases) 页面下 `ASliperyClimb_Windows.zip`，解压后双击
 `A Slipery Climb.exe`。
 
 ## Русский
@@ -61,5 +61,5 @@ Settings, achievements and saves are stored in `%APPDATA%\A Slipery Climb`.
 гору и доставить подарки. Кнопки «идти» нет: двигаешься только бросками конфет и
 взрывами.
 
-**Скачать**: `ASliperyClimb_Windows_v1.0.zip` со страницы [Releases](../../releases),
+**Скачать**: `ASliperyClimb_Windows.zip` со страницы [Releases](../../releases),
 распаковать и запустить `A Slipery Climb.exe` (Python не нужен).
