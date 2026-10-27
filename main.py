@@ -135,6 +135,12 @@ screen_shake_decay = 0.9
 screen_shake_offset_x = 0
 screen_shake_offset_y = 0
 
+# ========== Wind zone: the exposed ridge in the middle of the mountain ==========
+WIND_LO = 8900          # feet height where the gusts start
+WIND_HI = 9900          # ... and end
+WIND_STRENGTH = 0.05   # px/frame^2, peaks at +-this; gentle on purpose
+WIND_PERIOD = 4.0       # seconds for one full left-right gust cycle
+
 # Camera
 camera_x = 0
 camera_y = 0
@@ -1281,6 +1287,7 @@ game = [
     GameObject(x=8800, y=8145, width=400, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9350, y=8265, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9700, y=8305, width=250, height=50, texture_type='top', color=(255, 165, 0), end_y=8825, move_speed=2.6),
+    GameObject(obj_type='text', x=9300, y=9150, text='Gusts ahead: hold your line!', text_color=(255, 255, 0), text_size=44, text_align='center'),
     GameObject(x=9300, y=8945, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9000, y=9020, width=200, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=8600, y=9020, width=250, height=50, texture_type='top', color=(144, 238, 144)),
@@ -1291,7 +1298,8 @@ game = [
     GameObject(x=9450, y=9510, width=150, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9050, y=9630, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=8450, y=9750, width=400, height=50, texture_type='top', color=(144, 238, 144)),
-    GameObject(x=8300, y=9875, width=150, height=50, texture_type='top', color=(144, 238, 144)),
+    GameObject(x=8320, y=9830, width=100, height=50, texture_type='top', color=(144, 238, 144)),
+    GameObject(x=8140, y=9910, width=100, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7900, y=9995, width=200, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7500, y=10115, width=300, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7900, y=10215, width=200, height=50, texture_type='top', color=(144, 238, 144)),
@@ -1308,7 +1316,7 @@ game = [
     GameObject(x=5750, y=11310, width=300, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=6150, y=11410, width=300, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=6500, y=11410, width=300, height=50, texture_type='top', color=(144, 238, 144)),
-    GameObject(x=6150, y=11585, width=200, height=50, texture_type='top', color=(144, 238, 144)),
+    GameObject(x=6150, y=11545, width=200, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=5850, y=11585, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=5500, y=11685, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=5150, y=11805, width=200, height=50, texture_type='top', color=(144, 238, 144)),
@@ -1562,6 +1570,13 @@ def update_player(keys, dt, mouse_pos):
             player_velocity_x -= player_velocity_x * excess_decay * dt * 60
     
     player_velocity_x = max(-current_max_speed * 1.5, min(player_velocity_x, current_max_speed * 1.5))
+
+    # Wind zone: a periodic horizontal gust pushes the player sideways
+    feet_now = ground_level - (player_y + player_height)
+    if WIND_LO <= feet_now <= WIND_HI:
+        gust = math.sin(pygame.time.get_ticks() / 1000.0 * (2.0 * math.pi / WIND_PERIOD))
+        player_velocity_x += gust * WIND_STRENGTH * dt * 60
+
     player_x += player_velocity_x * dt * 60
     player_velocity_y += player_gravity * dt * 60
     player_y += player_velocity_y * dt * 60
@@ -1642,6 +1657,135 @@ def update_candies(dt):
     for i in sorted(candies_to_remove, reverse=True):
         if i < len(candies):
             candies.pop(i)
+
+# ========== Aim preview: dotted candy trajectory ==========
+AIM_PREVIEW_STEPS = 90
+_aim_dot_cache = {}
+
+
+def _aim_velocity(mouse_pos):
+    """The same numbers throw_candy() uses, but without throwing anything."""
+    mouse_world_x = mouse_pos[0] + camera_x
+    mouse_world_y = mouse_pos[1] + camera_y
+    center_x = player_x + player_width // 2
+    center_y = player_y + player_height // 2
+    dx = mouse_world_x - center_x
+    dy = mouse_world_y - center_y
+    distance = math.sqrt(dx * dx + dy * dy)
+    if distance <= MIN_THROW_DISTANCE:
+        return None
+    dir_x = dx / distance
+    dir_y = dy / distance
+    factor = min(distance / MAX_THROW_DISTANCE, 1.0)
+    power = candy_power_base + (candy_power_max - candy_power_base) * factor
+    return (center_x, center_y, dir_x * power, dir_y * power)
+
+
+def _aim_hits(x, y, radius):
+    """Would a candy at (x, y) touch a platform / the summit right now?"""
+    if y + radius > WORLD_BOTTOM_BORDER:
+        return True
+    for obj in game:
+        if obj.obj_type != "platform":
+            continue
+        platform_top = obj.y - obj.height
+        if (obj.x - radius < x < obj.x + obj.width + radius and
+                platform_top - radius < y < obj.y + radius):
+            return True
+    summit = summit_solid_rect()
+    if summit is not None and summit.collidepoint(x, y):
+        return True
+    return False
+
+
+def predict_candy_path(start_x, start_y, velocity_x, velocity_y,
+                       steps=AIM_PREVIEW_STEPS):
+    """Simulate the candy flight with the same gravity the real candy uses."""
+    points = []
+    x, y = start_x, start_y
+    velocity_y = velocity_y
+    radius = candy_radius
+    for _ in range(steps):
+        velocity_y += candy_gravity
+        x += velocity_x
+        y += velocity_y
+        points.append((x, y))
+        if _aim_hits(x, y, radius):
+            break
+    return points
+
+
+def _aim_dot(radius, color):
+    key = (radius, color)
+    surf = _aim_dot_cache.get(key)
+    if surf is None:
+        surf = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(surf, color, (radius, radius), radius)
+        _aim_dot_cache[key] = surf
+    return surf
+
+
+def draw_aim_preview(screen, mouse_pos, is_ready=True):
+    """Show where the candy would fly, as a dotted line that fades out.
+
+    is_ready comes from the game loop (can_throw and not just_entered_game);
+    those two are locals there, so they are passed in instead of read here.
+    """
+    if not is_ready or level_cleared:
+        return
+    velocity = _aim_velocity(mouse_pos)
+    if velocity is None:
+        return
+    points = predict_candy_path(*velocity)
+    total = max(1, len(points))
+    for index in range(0, len(points), 2):
+        world_x, world_y = points[index]
+        screen_x = int(world_x - camera_x)
+        screen_y = int(world_y - camera_y)
+        if not (-24 <= screen_x <= WIDTH + 24 and -24 <= screen_y <= HEIGHT + 24):
+            continue
+        fade = 1.0 - index / total
+        alpha = int(60 + 165 * fade)
+        radius = 5 if index % 10 == 0 else 4
+        dot = _aim_dot(radius, (255, 232, 180))
+        dot.set_alpha(alpha)
+        screen.blit(dot, (screen_x - radius, screen_y - radius))
+
+    # impact marker where the candy would land
+    last_x, last_y = points[-1]
+    if _aim_hits(last_x, last_y, candy_radius) and camera_x is not None:
+        impact = (int(last_x - camera_x), int(last_y - camera_y))
+        if -30 <= impact[0] <= WIDTH + 30 and -30 <= impact[1] <= HEIGHT + 30:
+            ring = _aim_dot(12, (255, 196, 120))
+            ring.set_alpha(120)
+            screen.blit(ring, (impact[0] - 12, impact[1] - 12))
+            ring2 = _aim_dot(12, (12, 16, 36))
+            ring2.set_alpha(90)
+            screen.blit(ring2, (impact[0] - 6, impact[1] - 6))
+
+
+# Wind streaks: short fast snow lines that show the direction of the gust
+WIND_STREAKS = [(random.random(), random.random(), random.uniform(0.6, 1.4)) for _ in range(34)]
+
+
+def draw_wind(screen):
+    feet = ground_level - (player_y + player_height)
+    if not (WIND_LO <= feet <= WIND_HI):
+        return
+    t = pygame.time.get_ticks() / 1000.0
+    gust = math.sin(t * 2.0 * math.pi / WIND_PERIOD)
+    speed = 260.0 * (0.35 + 0.65 * abs(gust))
+    direction = 1.0 if gust >= 0 else -1.0
+    span = WIDTH + 320
+    for fx, fy, ln in WIND_STREAKS:
+        x = (fx * span + direction * t * speed) % span - 160
+        y = int(fy * HEIGHT)
+        length = 26.0 * ln * (0.45 + 0.75 * abs(gust))
+        alpha = int(90 + 105 * abs(gust))
+        color = (min(255, 190 + alpha // 4), min(255, 205 + alpha // 5), 245)
+        pygame.draw.line(screen, color,
+                         (int(x), y), (int(x + direction * length), y - int(length * 0.22)), 1)
+
 
 def draw_candies(screen):
     for candy in candies:
@@ -2304,7 +2448,7 @@ class CompleteTiledNinePatch:
         self._tile_from(surf, self.mid, -phase, 0, w, min(self.BAND, h))
 
         tl, tr, bl, br = corners
-        if w >= self.cap_w * 2 and h >= 2 and any(corners):
+        if w >= self.cap_w and h >= 2 and any(corners):
             c = min(self.CORNER, h // 2)
             mask = pygame.Surface((w, h), pygame.SRCALPHA)
             mask.fill((255, 255, 255, 255))
@@ -3254,18 +3398,24 @@ def run_game():
 
                 elif current_state == GameState.MENU:
                     # Menu keyboard navigation
-                    if event.key == pygame.K_RETURN:
-                        save_data = SaveManager.load_game()
-                        if save_data:
-                            player_x = save_data["player_x"]
-                            player_y = save_data["player_y"]
-                            camera_x = player_x - WIDTH // 2
-                            camera_y = player_y - HEIGHT // 2
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        # Enter = "continue" when a save exists, otherwise start
+                        # a new game, exactly like clicking those menu buttons.
+                        if SaveManager.save_exists():
+                            load_slot_into_game(SaveManager.latest_slot())
+                            current_state = GameState.PLAYING
+                            just_entered_game = True
+                            player_entry_time = pygame.time.get_ticks() / 1000.0
                         else:
-                            reset_game()
-                        current_state = GameState.PLAYING
-                        just_entered_game = True
-                        player_entry_time = pygame.time.get_ticks() / 1000.0
+                            slot = first_empty_slot()
+                            if slot is not None:
+                                current_slot = slot
+                                reset_game()
+                                SaveManager.save_slot(current_slot, player_x,
+                                                      player_y)
+                                start_cutscene("intro")
+                                just_entered_game = True
+                                player_entry_time = pygame.time.get_ticks() / 1000.0
                     elif event.key == pygame.K_ESCAPE:
                         running = False
                 
@@ -3290,6 +3440,8 @@ def run_game():
         # Draw snow first (bottom layer)
         snow_system.update(dt)
         snow_system.draw(screen)
+        if current_state == GameState.PLAYING:
+            draw_wind(screen)
         
         if current_state == GameState.PLAYING:
             global mouse_button_down
@@ -3359,6 +3511,7 @@ def run_game():
                     tip_rect = tip_text.get_rect(center=(WIDTH // 2, 50))
                     screen.blit(tip_text, tip_rect)
             
+            draw_aim_preview(screen, mouse_pos, is_ready)  # dotted throw preview
             draw_custom_cursor(screen, mouse_pos, is_ready)
             draw_summit_msg(screen)  # summit message
             draw_summit_hint(screen)  # summit hint + text arrow

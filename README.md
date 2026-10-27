@@ -14,8 +14,9 @@ ride the moving platforms up the mountain.
 ## Features
 
 - Hand-made level in the spirit of *Getting Over It*: stairs, steep ladders,
-  drop jumps, ferries, elevators and curved moving platforms
+  drop jumps, ferries, elevators, curved moving platforms and a windy ridge
 - Candy-bomb movement: throw, blast, slide, climb
+- Dotted trajectory preview while aiming: see where the candy will fly
 - 9 languages: English, русский, 中文, 日本語, 한국어, Deutsch, Français,
   Italiano, Español
 - Intro and victory cutscenes (skippable), idle chatter on the way up
@@ -106,7 +107,9 @@ attaches the packages to that release automatically.
 **没有“走”这个按钮**——你只能靠扔糖果、借爆炸的反冲把自己推上去：
 往后扔往前滑、往脚下扔起跳、等移动平台靠过来再搭上去。
 
-- 手工关卡（Getting Over It 风格）：台阶、陡梯、下跳、渡船、电梯、弧线移动平台
+- 手工关卡（Getting Over It 风格）：台阶、陡梯、下跳、渡船、电梯、弧线移动平台，
+  还有一段会刮风的山脊
+- 瞄准时显示糖果飞行轨迹（虚线预览）
 - 9 种语言（含中文）
 - 开场 / 通关过场（可跳过）、随机闲聊、带等级的成就
 - 5 个存档位，通关会删掉该存档
@@ -125,6 +128,7 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 взрывами.
 
 - ручной уровень в духе Getting Over It: лестницы, прыжки вниз, паромы, лифты
+  и ветреный гребень; при прицеливании видно траекторию конфеты
 - 9 языков, включая русский
 - катсцены (можно пропустить), достижения с уровнями, 5 слотов сохранения
 
