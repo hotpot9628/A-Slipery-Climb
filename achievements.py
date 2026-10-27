@@ -101,6 +101,8 @@ L = {
 }
 
 state = {"clears": 0, "candies": 0, "max_height": 0, "_saved": 0}
+# Tiers unlocked since the last take_new() call (used for on-screen popups).
+NOTIFY = []
 _loaded = False
 
 
@@ -149,6 +151,8 @@ def update_height(h):
     before = _level(state["max_height"], HEIGHT_TIERS)
     state["max_height"] = h
     after = _level(h, HEIGHT_TIERS)
+    for i in range(before + 1, after + 1):
+        NOTIFY.append({"kind": "height", "tier": HEIGHT_TIERS[i - 1]})
     if after != before or h - state["_saved"] >= 100:
         state["_saved"] = h
         _save()
@@ -156,16 +160,41 @@ def update_height(h):
 
 def add_clear():
     _ensure()
+    before = _level(state["clears"], CLEAR_TIERS)
     state["clears"] += 1
+    after = _level(state["clears"], CLEAR_TIERS)
+    for i in range(before + 1, after + 1):
+        NOTIFY.append({"kind": "clears", "tier": CLEAR_TIERS[i - 1]})
     _save()
     return state["clears"]
 
 
 def add_candy():
     _ensure()
+    before = _level(state["candies"], CANDY_TIERS)
     state["candies"] += 1
+    after = _level(state["candies"], CANDY_TIERS)
+    for i in range(before + 1, after + 1):
+        NOTIFY.append({"kind": "candy", "tier": CANDY_TIERS[i - 1]})
     if state["candies"] % 10 == 0:
         _save()
+
+
+def take_new():
+    """Return the tiers unlocked since the last call (for on-screen popups)."""
+    out = NOTIFY[:]
+    NOTIFY[:] = []
+    return out
+
+
+def describe(kind, tier, lang="en"):
+    """Localised (title, detail) pair for a notification entry."""
+    t = L.get(lang) or L["en"]
+    if kind == "height":
+        return t["height"], t["tiers"][HEIGHT_TIERS.index(tier)]
+    if kind == "clears":
+        return t["clears"], t["clears_tier"].format(c=tier)
+    return t["candy"], t["candy_tier"].format(c=tier)
 
 
 def reset_run():

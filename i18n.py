@@ -533,6 +533,21 @@ for _code, _kv in _UI2.items():
     STRINGS[_code].update(_kv)
 
 
+UI_EN["ach_unlocked"] = "Achievement unlocked"
+_ACH_UNLOCKED = {
+    "zh": "成就解锁",
+    "ja": "実績解除",
+    "ko": "업적 달성",
+    "ru": "Достижение получено",
+    "de": "Erfolg freigeschaltet",
+    "fr": "Succès débloqué",
+    "it": "Obiettivo sbloccato",
+    "es": "Logro desbloqueado",
+}
+for _code, _txt in _ACH_UNLOCKED.items():
+    STRINGS[_code]["ach_unlocked"] = _txt
+
+
 _TIPS = {
     "Long way up. If a gap looks too wide, throw a candy in mid-air to push yourself.": {
         "zh": "还有很长的路。如果间隙太宽，就在空中扔糖果借力推自己一把。",

@@ -156,6 +156,11 @@ chatter_text = ""
 chatter_life = 0.0
 chatter_last = None
 CHATTER_TIME = 4.0
+
+# Achievement popups (toasts) that slide in while playing
+toasts = []
+TOAST_LIFE = 3.8
+TOAST_SLIDE = 0.35
 CHATTER_MIN, CHATTER_MAX = 18.0, 38.0
 
 # Cutscenes
@@ -2103,6 +2108,7 @@ def reset_game():
     
     SaveManager.delete_slot(current_slot)
     achievements.reset_run()
+    toasts.clear()
     flavor.reset_tutorials()  # FLAVOR
 
 class SaveManager:
@@ -2676,6 +2682,60 @@ def draw_summit_msg(screen):
     screen.blit(surface, rect)
 
 
+def pull_achievement_toasts():
+    """Queue a popup for every achievement unlocked since the last frame."""
+    for item in achievements.take_new():
+        title, detail = achievements.describe(item["kind"], item["tier"],
+                                               i18n.current)
+        toasts.append({"title": title, "detail": detail, "t": 0.0})
+
+
+def update_toasts(dt):
+    for toast in toasts:
+        toast["t"] += dt
+    toasts[:] = [t for t in toasts if t["t"] < TOAST_LIFE]
+
+
+def draw_toasts(screen):
+    if not toasts:
+        return
+    head_font = i18n.get_font(max(10, int(20 * i18n.scale())))
+    body_font = i18n.get_font(max(10, int(28 * i18n.scale())))
+    head_text = i18n.ui("ach_unlocked")
+    for index, toast in enumerate(toasts[:3]):
+        life = toast["t"]
+        if life < TOAST_SLIDE:
+            k = life / TOAST_SLIDE
+            slide = int((1.0 - k) * 46)
+            alpha = int(255 * k)
+        elif life > TOAST_LIFE - 0.6:
+            k = (TOAST_LIFE - life) / 0.6
+            slide = 0
+            alpha = int(255 * max(0.0, k))
+        else:
+            slide = 0
+            alpha = 255
+        head_surf = head_font.render(head_text, True, (255, 214, 120))
+        body_surf = body_font.render(toast["title"] + "  ·  " + toast["detail"],
+                                     True, (242, 246, 255))
+        width = max(head_surf.get_width(), body_surf.get_width()) + 92
+        box = pygame.Surface((width, 74), pygame.SRCALPHA)
+        pygame.draw.rect(box, (14, 18, 40, 235), box.get_rect(), border_radius=14)
+        pygame.draw.rect(box, (255, 214, 120), box.get_rect(), 2, border_radius=14)
+        cx, cy, r = 40, 37, 15
+        points = []
+        for i in range(10):
+            ang = -math.pi / 2 + i * math.pi / 5
+            rad = r if i % 2 == 0 else r * 0.45
+            points.append((cx + rad * math.cos(ang), cy + rad * math.sin(ang)))
+        pygame.draw.polygon(box, (255, 214, 120), points)
+        box.blit(head_surf, (74, 12))
+        box.blit(body_surf, (74, 36))
+        box.set_alpha(alpha)
+        rect = box.get_rect(center=(WIDTH // 2, 58 + index * 82 - slide))
+        screen.blit(box, rect)
+
+
 def draw_chatter(screen):
     if chatter_life <= 0 or not chatter_text:
         return
@@ -3236,6 +3296,8 @@ def run_game():
             
             update_player(keys, dt, mouse_pos)
             flavor.update(dt)  # FLAVOR
+            pull_achievement_toasts()
+            update_toasts(dt)
             summit_msg_timer = max(0.0, summit_msg_timer - dt)  # summit message
             # Random chatter
             global chatter_timer, chatter_text, chatter_life, chatter_last
@@ -3289,6 +3351,7 @@ def run_game():
             if level_cleared:
                 draw_victory(screen)   # old black victory screen (after the cutscene)
             draw_chatter(screen)  # random chatter
+            draw_toasts(screen)  # achievement popups
             
 
         elif current_state == GameState.CUTSCENE:

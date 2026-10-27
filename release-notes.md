@@ -13,8 +13,8 @@ Available for **Windows, macOS and Linux**.
 | 🪟 **Windows** | `ASliperyClimb_Windows.zip` | unpack and run `A Slipery Climb.exe` |
 | 🍎 **macOS** | `ASliperyClimb_macOS.zip` | unpack and open `A Slipery Climb.app` |
 | 🐧 **Linux** | `ASliperyClimb_Linux.tar.gz` | `tar -xzf`, then run `A Slipery Climb/A Slipery Climb` |
-| 🐧 **Debian / Ubuntu / Astra** | `asliperyclimb_*_amd64.deb` | `sudo apt install ./asliperyclimb_*.deb` |
-| 🐧 **Fedora / RHEL / openSUSE / ALT** | `asliperyclimb-*.rpm` | `sudo dnf install ./asliperyclimb-*.rpm` |
+| 🐧 **Debian / Ubuntu / Astra** | `ASliperyClimb_Linux_amd64.deb` | `sudo apt install ./ASliperyClimb_Linux_amd64.deb` |
+| 🐧 **Fedora / RHEL / openSUSE / ALT** | `ASliperyClimb_Linux_x86_64.rpm` | `sudo dnf install ./ASliperyClimb_Linux_x86_64.rpm` |
 
 No installation of Python or pygame is needed — every build is self-contained.
 
@@ -64,7 +64,8 @@ Settings, achievements and saves are stored in:
 提供 **Windows、macOS 和 Linux** 版本。
 
 **下载**：按系统选对应文件——Windows 用 `ASliperyClimb_Windows.zip`，macOS 用
-`ASliperyClimb_macOS.zip`，Linux 用 `ASliperyClimb_Linux.tar.gz` 或 deb/rpm 安装包。
+`ASliperyClimb_macOS.zip`，Linux 用 `ASliperyClimb_Linux.tar.gz` 或
+`ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm` 安装包。
 不需要安装 Python 或 pygame。
 
 - 手工关卡（Getting Over It 风格）：台阶、陡梯、下跳、渡船、电梯、弧线移动平台
@@ -82,8 +83,9 @@ Settings, achievements and saves are stored in:
 Есть сборки для **Windows, macOS и Linux**.
 
 **Скачать**: Windows — `ASliperyClimb_Windows.zip`, macOS —
-`ASliperyClimb_macOS.zip`, Linux — `ASliperyClimb_Linux.tar.gz` или пакеты
-deb/rpm. Python и pygame устанавливать не нужно.
+`ASliperyClimb_macOS.zip`, Linux — `ASliperyClimb_Linux.tar.gz`,
+`ASliperyClimb_Linux_amd64.deb` или `ASliperyClimb_Linux_x86_64.rpm`.
+Python и pygame устанавливать не нужно.
 
 Настройки и сохранения: `%APPDATA%\A Slipery Climb` (Windows),
 `~/Library/Application Support/A Slipery Climb` (macOS),

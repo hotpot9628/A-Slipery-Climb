@@ -37,8 +37,8 @@ ride the moving platforms up the mountain.
 | **Windows** | [ASliperyClimb_Windows.zip](../../releases/latest/download/ASliperyClimb_Windows.zip) | unpack, run `A Slipery Climb.exe` |
 | **macOS** | [ASliperyClimb_macOS.zip](../../releases/latest/download/ASliperyClimb_macOS.zip) | unpack, open `A Slipery Climb.app` |
 | **Linux** (any distro) | [ASliperyClimb_Linux.tar.gz](../../releases/latest/download/ASliperyClimb_Linux.tar.gz) | unpack, run `A Slipery Climb/A Slipery Climb` |
-| **Linux** (deb) | [Releases page](../../releases/latest) | `sudo apt install ./asliperyclimb_*.deb` |
-| **Linux** (rpm) | [Releases page](../../releases/latest) | `sudo dnf install ./asliperyclimb-*.rpm` |
+| **Linux** (deb) | [ASliperyClimb_Linux_amd64.deb](../../releases/latest/download/ASliperyClimb_Linux_amd64.deb) | `sudo apt install ./ASliperyClimb_Linux_amd64.deb` |
+| **Linux** (rpm) | [ASliperyClimb_Linux_x86_64.rpm](../../releases/latest/download/ASliperyClimb_Linux_x86_64.rpm) | `sudo dnf install ./ASliperyClimb_Linux_x86_64.rpm` |
 
 No Python or pygame installation is needed: the builds are self-contained.
 
@@ -111,7 +111,7 @@ attaches the packages to that release automatically.
 
 **下载**：到 [Releases](../../releases/latest) 页面按系统选：
 Windows 下 `ASliperyClimb_Windows.zip`，解压后双击 `A Slipery Climb.exe`；
-macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 tar.gz 或 deb/rpm。
+macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，或 `ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`。
 
 存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
 `~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
@@ -127,8 +127,9 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 tar.gz 或 deb/rpm。
 - катсцены (можно пропустить), достижения с уровнями, 5 слотов сохранения
 
 **Скачать**: на странице [Releases](../../releases/latest) — Windows
-(`ASliperyClimb_Windows.zip`), macOS (`ASliperyClimb_macOS.zip`), Linux (tar.gz,
-deb, rpm). Установка не нужна, Python не требуется.
+(`ASliperyClimb_Windows.zip`), macOS (`ASliperyClimb_macOS.zip`), Linux
+(`ASliperyClimb_Linux.tar.gz`, `ASliperyClimb_Linux_amd64.deb`,
+`ASliperyClimb_Linux_x86_64.rpm`). Установка не нужна, Python не требуется.
 
 Настройки и сохранения: Windows `%APPDATA%\A Slipery Climb`; macOS
 `~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
