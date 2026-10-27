@@ -86,3 +86,46 @@ jobs:
             artifacts/macos/ASliperyClimb_macOS.zip
             artifacts/linux/ASliperyClimb_Linux.tar.gz
           generate_release_notes: true
+  linux-packages:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build folder
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed \
+            --name asliperyclimb \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+      - name: Build .deb and .rpm
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y rpm ruby ruby-dev
+          sudo gem install fpm --no-document
+          ROOT=/tmp/root
+          mkdir -p $ROOT/opt/asliperyclimb $ROOT/usr/share/applications
+          mkdir -p $ROOT/usr/share/icons/hicolor/256x256/apps
+          cp -r dist/asliperyclimb/* $ROOT/opt/asliperyclimb/
+          cp screenshots/gameplay.png $ROOT/usr/share/icons/hicolor/256x256/apps/asliperyclimb.png
+          printf '%s\n' '[Desktop Entry]' 'Name=A SLIPERY CLIMB' 'Exec=/opt/asliperyclimb/asliperyclimb' 'Icon=asliperyclimb' 'Terminal=false' 'Type=Application' 'Categories=Game;ArcadeGame;' > $ROOT/usr/share/applications/asliperyclimb.desktop
+          chmod +x $ROOT/opt/asliperyclimb/asliperyclimb
+          fpm -s dir -t deb -n asliperyclimb -v 1.0.0 --architecture amd64 \
+            --description "A slippery climbing game about a Santa" \
+            --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
+            --depends libc6 --depends libsdl2-2.0-0 --depends libsdl2-image-2.0-0 \
+            --depends libsdl2-mixer-2.0-0 --depends libsdl2-ttf-2.0-0 -C $ROOT .
+          fpm -s dir -t rpm -n asliperyclimb -v 1.0.0 --architecture x86_64 \
+            --description "A slippery climbing game about a Santa" \
+            --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
+            -C $ROOT .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            asliperyclimb_1.0.0_amd64.deb
+            asliperyclimb-1.0.0-1.x86_64.rpm
