@@ -85,7 +85,7 @@ jobs:
             artifacts/windows/ASliperyClimb_Windows.zip
             artifacts/macos/ASliperyClimb_macOS.zip
             artifacts/linux/ASliperyClimb_Linux.tar.gz
-          generate_release_notes: true
+
   linux-packages:
     runs-on: ubuntu-22.04
     steps:
