@@ -3,12 +3,13 @@
 **A small, slippery climbing game about a Santa who has to get up a very big
 mountain to deliver presents.**
 
-### [⬇ Download for Windows (latest release)](https://github.com/ydw9628-png/A-Slipery-Climb/releases/latest)
+### [⬇ Download for Windows (latest release)](../../releases/latest)
 
 There is no walk button. You move by throwing candy and letting the explosions
 push you around: throw backward to slide forward, blast-jump over gaps, and ride
 moving platforms up the mountain.
 
+![gameplay](screenshots/gameplay.png)
 
 ## Features
 
@@ -39,6 +40,7 @@ moving platforms up the mountain.
 
 Settings, achievements and saves are stored in `%APPDATA%\A Slipery Climb`.
 
+![summit](screenshots/summit.png)
 
 ## 中文
 
@@ -63,3 +65,5 @@ Settings, achievements and saves are stored in `%APPDATA%\A Slipery Climb`.
 
 **Скачать**: `ASliperyClimb_Windows.zip` со страницы [Releases](../../releases),
 распаковать и запустить `A Slipery Climb.exe` (Python не нужен).
+
+![cutscene](screenshots/cutscene.png)
