@@ -121,12 +121,14 @@ jobs:
             --description "A slippery climbing game about a Santa" \
             --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
             -C $ROOT .
+          mv asliperyclimb_*.deb ASliperyClimb_Linux_amd64.deb
+          mv asliperyclimb-*.rpm ASliperyClimb_Linux_x86_64.rpm
       - uses: actions/upload-artifact@v4
         with:
           name: linux-packages
           path: |
-            asliperyclimb_1.0.0_amd64.deb
-            asliperyclimb-1.0.0-1.x86_64.rpm
+            ASliperyClimb_Linux_amd64.deb
+            ASliperyClimb_Linux_x86_64.rpm
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -145,5 +147,5 @@ jobs:
             artifacts/windows/ASliperyClimb_Windows.zip
             artifacts/macos/ASliperyClimb_macOS.zip
             artifacts/linux/ASliperyClimb_Linux.tar.gz
-            artifacts/linux-packages/asliperyclimb_1.0.0_amd64.deb
-            artifacts/linux-packages/asliperyclimb-1.0.0-1.x86_64.rpm
+            artifacts/linux-packages/ASliperyClimb_Linux_amd64.deb
+            artifacts/linux-packages/ASliperyClimb_Linux_x86_64.rpm
