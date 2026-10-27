@@ -14,7 +14,13 @@ def _resource_dir():
 
 def _user_dir():
     """Writable folder for settings / saves / achievements (never the install dir)."""
-    base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    home = os.path.expanduser("~")
+    if sys.platform.startswith("win"):
+        base = os.environ.get("APPDATA") or home
+    elif sys.platform == "darwin":
+        base = os.path.join(home, "Library", "Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.join(home, ".local", "share")
     folder = os.path.join(base, "A Slipery Climb")
     try:
         os.makedirs(folder, exist_ok=True)
