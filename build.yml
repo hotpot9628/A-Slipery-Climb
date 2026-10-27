@@ -1,0 +1,102 @@
+name: build
+
+# Builds A SLIPERY CLIMB for Windows, macOS and Linux from the source in this repo.
+# - Actions tab -> build -> Run workflow : builds all three, download them as artifacts
+# - push a tag like v1.1.0 : builds all three and attaches them to a GitHub Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build exe
+        run: >
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name "A Slipery Climb" --icon icon.ico
+          --add-data "textures;textures" --add-data "sounds;sounds" main.py
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item "dist/A Slipery Climb.exe" out/
+          Compress-Archive -Path "out/A Slipery Climb.exe" -DestinationPath "out/ASliperyClimb_Windows.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/ASliperyClimb_Windows.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build app
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed \
+            --name "A Slipery Climb" \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+          cd dist
+          zip -qry "../ASliperyClimb_macOS.zip" "A Slipery Climb.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: ASliperyClimb_macOS.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build folder
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed \
+            --name "A Slipery Climb" \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+          tar -czf "ASliperyClimb_Linux.tar.gz" -C dist "A Slipery Climb"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: ASliperyClimb_Linux.tar.gz
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, macos, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/windows/ASliperyClimb_Windows.zip
+            artifacts/macos/ASliperyClimb_macOS.zip
+            artifacts/linux/ASliperyClimb_Linux.tar.gz
+          generate_release_notes: true
