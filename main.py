@@ -2434,12 +2434,17 @@ class CompleteTiledNinePatch:
         tw, th = tex.get_size()
         xx = start_x + max(0, (rect.left - start_x) // tw) * tw
         yy0 = start_y + max(0, (rect.top - start_y) // th) * th
+        # Clip to the platform rectangle: otherwise the last tile is drawn past
+        # the collision box (the big walls looked ~50 px wider than they are).
+        previous_clip = target.get_clip()
+        target.set_clip(rect)
         while xx < rect.right:
             yy = yy0
             while yy < rect.bottom:
                 target.blit(tex, (xx, yy))
                 yy += th
             xx += tw
+        target.set_clip(previous_clip)
 
     # ---------------- rendering ----------------
     def _render(self, w, h, phase, corners):
