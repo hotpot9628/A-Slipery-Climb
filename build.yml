@@ -1,0 +1,158 @@
+name: build
+
+# Builds A SLIPERY CLIMB for Windows, macOS and Linux, and the Linux .deb/.rpm.
+# - Actions tab -> build -> Run workflow : builds everything, download the artifacts
+# - push a tag like v1.1.0 : builds everything and publishes a release with all files
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build exe
+        run: >
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name "A Slipery Climb" --icon icon.ico
+          --add-data "textures;textures" --add-data "sounds;sounds" main.py
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item "dist/A Slipery Climb.exe" out/
+          Compress-Archive -Path "out/A Slipery Climb.exe" -DestinationPath "out/ASliperyClimb_Windows.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: out/ASliperyClimb_Windows.zip
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build app
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed \
+            --name "A Slipery Climb" \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+          cd dist
+          zip -qry "../ASliperyClimb_macOS.zip" "A Slipery Climb.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: ASliperyClimb_macOS.zip
+
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build folder
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed \
+            --name "A Slipery Climb" \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+          tar -czf "ASliperyClimb_Linux.tar.gz" -C dist "A Slipery Climb"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: ASliperyClimb_Linux.tar.gz
+
+  linux-packages:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame
+      - name: Build folder
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed \
+            --name asliperyclimb \
+            --add-data "textures:textures" \
+            --add-data "sounds:sounds" \
+            main.py
+      - name: Build .deb and .rpm
+        run: |
+          set -e
+          # Package version comes from the tag: v1.2.0 -> 1.2.0.
+          # Manual runs (branch name) fall back to 1.0.0.
+          VERSION="${GITHUB_REF_NAME#v}"
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            VERSION="1.0.0"
+          fi
+          echo "package version: $VERSION"
+          sudo apt-get update
+          sudo apt-get install -y rpm ruby ruby-dev
+          sudo gem install fpm --no-document
+          ROOT=/tmp/root
+          mkdir -p $ROOT/opt/asliperyclimb $ROOT/usr/share/applications
+          mkdir -p $ROOT/usr/share/icons/hicolor/256x256/apps
+          cp -r dist/asliperyclimb/* $ROOT/opt/asliperyclimb/
+          cp screenshots/gameplay.png $ROOT/usr/share/icons/hicolor/256x256/apps/asliperyclimb.png
+          printf '%s\n' '[Desktop Entry]' 'Name=A SLIPERY CLIMB' 'Exec=/opt/asliperyclimb/asliperyclimb' 'Icon=asliperyclimb' 'Terminal=false' 'Type=Application' 'Categories=Game;ArcadeGame;' > $ROOT/usr/share/applications/asliperyclimb.desktop
+          chmod +x $ROOT/opt/asliperyclimb/asliperyclimb
+          fpm -s dir -t deb -n asliperyclimb -v "$VERSION" --architecture amd64 \
+            --description "A slippery climbing game about a Santa" \
+            --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
+            --depends libc6 -C $ROOT .
+          fpm -s dir -t rpm -n asliperyclimb -v "$VERSION" --architecture x86_64 \
+            --description "A slippery climbing game about a Santa" \
+            --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
+            -C $ROOT .
+          mv asliperyclimb_*.deb ASliperyClimb_Linux_amd64.deb
+          mv asliperyclimb-*.rpm ASliperyClimb_Linux_x86_64.rpm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            ASliperyClimb_Linux_amd64.deb
+            ASliperyClimb_Linux_x86_64.rpm
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, macos, linux, linux-packages]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: |
+            artifacts/windows/ASliperyClimb_Windows.zip
+            artifacts/macos/ASliperyClimb_macOS.zip
+            artifacts/linux/ASliperyClimb_Linux.tar.gz
+            artifacts/linux-packages/ASliperyClimb_Linux_amd64.deb
+            artifacts/linux-packages/ASliperyClimb_Linux_x86_64.rpm
