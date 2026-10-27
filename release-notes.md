@@ -31,8 +31,11 @@ No installation of Python or pygame is needed — every build is self-contained.
 
 - **Windows**: *"Windows protected your PC"* → **More info → Run anyway**
   (the exe is not code-signed).
-- **macOS**: right-click the app → **Open**, or run
-  `xattr -cr "A Slipery Climb.app"` once (the app is not notarized).
+- **macOS**: if macOS says it cannot verify the app, open
+  **System Settings → Privacy & Security**, scroll to *Security* and click
+  **Open Anyway** (macOS 15+), or run
+  `xattr -dr com.apple.quarantine "A Slipery Climb.app"` once in Terminal
+  (the app is not notarized).
 - **Linux**: `chmod +x "A Slipery Climb/A Slipery Climb"` if needed.
 
 ## What's in the game

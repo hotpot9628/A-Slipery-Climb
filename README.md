@@ -46,9 +46,11 @@ No Python or pygame installation is needed: the builds are self-contained.
 
 - **Windows** may show *"Windows protected your PC"* (the exe is not
   code-signed). Click **More info → Run anyway**.
-- **macOS** may show *"cannot be opened because the developer cannot be
-  verified"*. Right-click the `.app` → **Open**, or run
-  `xattr -cr "A Slipery Climb.app"` once.
+- **macOS** may say *"Apple cannot check it for malicious software"*. Open
+  **System Settings → Privacy & Security**, scroll to *Security* and click
+  **Open Anyway** (macOS 15 and newer), or run
+  `xattr -dr com.apple.quarantine "A Slipery Climb.app"` once in Terminal.
+  The app is not notarized.
 - **Linux**: if the file is not executable, run
   `chmod +x "A Slipery Climb/A Slipery Climb"`.
 

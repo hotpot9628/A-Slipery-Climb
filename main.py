@@ -23,7 +23,21 @@ pygame.mixer.init()  # init the mixer
 # Screen setup
 screen_info = pygame.display.Info()
 WIDTH, HEIGHT = screen_info.current_w, screen_info.current_h
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.NOFRAME)
+
+
+def _display_flags():
+    """Window flags for the game screen.
+
+    macOS: a borderless window the size of the desktop does not reliably take
+    clicks (they fall through to the app behind it), so use real fullscreen
+    there. Other platforms keep the borderless window they always had.
+    """
+    if sys.platform == "darwin":
+        return pygame.FULLSCREEN
+    return pygame.NOFRAME
+
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT), _display_flags())
 pygame.display.set_caption("A SLIPERY CLIMB")
 
 # Colors
