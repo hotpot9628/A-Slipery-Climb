@@ -1,0 +1,5 @@
+﻿A SLIPERY CLIMB
+Copyright (c) 2026 ydw9628-png
+
+Game code, level design: MIT License (free to use, modify and share with credit).
+Art (textures) and audio (sounds): all rights reserved.
