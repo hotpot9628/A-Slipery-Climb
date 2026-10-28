@@ -1,4 +1,0 @@
-pygame==2.6.1
-
-# Build-time only (the release workflow installs these too):
-pyinstaller>=6.0
