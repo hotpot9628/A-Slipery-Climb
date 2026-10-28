@@ -1,0 +1,10 @@
+A SLIPERY CLIMB — artwork and audio
+
+Copyright (c) 2026 hotpot9628. All rights reserved.
+
+The files in textures/ and sounds/ are original work made for this game.
+They may not be redistributed, reused or modified in other projects without
+permission.
+
+The launch pad, cabin and mountain backdrop are drawn by the game itself from
+simple shapes, so no third-party art is involved there.
