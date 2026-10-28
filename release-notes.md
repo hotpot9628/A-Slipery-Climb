@@ -20,7 +20,8 @@ This is the biggest update so far.
   - 6 normal achievements: Cloud Walker (height), Summit Legend (clears),
     Candy Storm (throws), Aerial Ace (air throws), Sky Dweller (air time),
     Trailblazer (different platforms)
-  - 4 hidden ones: Statue, Self-Hit, Air Streak, Chain Reaction
+  - a handful of hidden achievements to discover — their names and
+    conditions stay secret until you unlock them
   - Ranks and hidden unlocks are saved permanently; popups only appear for new
     personal records.
 - **Jingle Bells at the summit.** Reach the peak near the cabin: the main theme
@@ -34,8 +35,7 @@ This is the biggest update so far.
   five illustrated pages (aiming, throw strength, recoil movement, progress bar,
   cursor).
 - **Falling retry tip.** Fall three times at the same spot and a short 5-second
-  tip appears when you get back up there (and falling seven times at one spot
-  unlocks a hidden achievement).
+  tip appears when you get back up there.
 - **No pointer while playing.** The aim arc and the force meter under the
   character show everything; hold **Alt** to bring the pointer back. Menus,
   cutscenes and the victory screen always show the cursor. macOS no longer
@@ -124,10 +124,9 @@ Settings, achievements and saves are stored in:
 - **攀爬进度条**：左侧圣诞老人标记显示你已经爬了多少米。
 - **成就系统重做**：每个成就 5 个段位（黑铁→青铜→黄金→铂金→钻石），每个段位
   单独一页；每个成就有自己的图标，图标底色随段位变化；未解锁变暗但仍显示条件。
-  另有一栏红色**隐藏成就**，解锁前显示 `???`：
+  另有一栏红色**隐藏成就**，解锁前名字和条件都显示 `???`，自己去发现吧。
   - 常规 6 个：云端行者（高度）、山顶传奇（通关次数）、糖果风暴（扔糖数）、
     空中王牌（空中扔糖）、天空居民（滞空时间）、踏遍群山（站上不同平台）
-  - 隐藏 4 个：石像、自食其果、空中连击、连锁反应
   - 段位和解锁永久保存；只有刷新个人纪录才会弹提示。
 - **山顶《Jingle Bells》**：爬上山顶小屋附近，主音乐淡出、八音盒版 Jingle Bells
   缓慢淡入；回菜单或开新局自动恢复普通音乐。
@@ -135,8 +134,7 @@ Settings, achievements and saves are stored in:
   五句台词和“最高点”回顾。片头动画仍可跳过。
 - **教学常驻**：关卡里的黄色教学文字不再消失；菜单新增**教程**页，5 页图文
   （瞄准、力度、后坐力移动、进度条、光标）。
-- **老摔点提示**：同一个地方掉下去 3 次，再爬回来会显示 5 秒小提示
-  （同一个地方掉 7 次还能解锁隐藏成就）。
+- **老摔点提示**：同一个地方掉下去 3 次，再爬回来会显示 5 秒小提示。
 - **游玩时隐藏鼠标**：抛物线和角色脚下的力度条足够瞄准；按住 **Alt** 可唤出光标，
   菜单/动画/胜利界面则一直显示。macOS 不再残留系统光标。
 - **内置字体**：自带中日韩字体子集，系统没装字体也能正常显示；俄语改用系统默认
@@ -186,7 +184,8 @@ Silicon 专用。
   **Скрытые** показывает `???` до разблокировки.
   - 6 обычных: Идущий по облакам, Легенда вершины, Конфетный шторм,
     Воздушный ас, Небесный житель, Первопроходец
-  - 4 скрытых: Статуя, Сам себе враг, Воздушная серия, Цепная реакция
+  - несколько скрытых достижений: их имена и условия остаются тайной до
+    разблокировки
   - Ранги и скрытые достижения сохраняются навсегда; уведомления — только за
     новые личные рекорды.
 - **Jingle Bells на вершине:** у хижины основная музыка затихает и медленно
@@ -198,8 +197,7 @@ Silicon 专用。
 - **Обучение остаётся на экране:** жёлтые подсказки уровня больше не исчезают,
   а в меню появилась страница **Обучение** из пяти иллюстрированных страниц.
 - **Подсказка после падений:** упал три раза в одном месте — вернувшись, увидишь
-  подсказку на 5 секунд (а семь падений в одном месте открывают скрытое
-  достижение).
+  подсказку на 5 секунд.
 - **Курсор скрыт во время игры:** дуга броска и полоска силы у персонажа
   показывают всё; удерживай **Alt**, чтобы вернуть курсор. В меню, кат-сценах и
   на экране победы он виден всегда. macOS больше не оставляет системный курсор.
