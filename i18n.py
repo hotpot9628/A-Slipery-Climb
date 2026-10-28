@@ -12,6 +12,8 @@ Usage (already wired up in main.py):
 import glob
 import os
 
+import paths
+
 import pygame
 
 LANGS = [
@@ -42,21 +44,21 @@ _ZH = {
     "continue": "继续", "new_game": "新游戏", "reset": "重置", "settings": "设置",
     "exit": "退出", "sound": "音效", "music": "音乐", "return": "返回", "language": "语言",
     "Welcome to the game!": "欢迎来到游戏！",
-    "Try clicking your left button of your mouse :)": "试试点击鼠标左键 :)",
+    "Try clicking your left mouse button :)": "试试点击鼠标左键 :)",
     "If you see this": "如果你看到这句",
     "Good job! You learned how to move horizontally": "很好！你学会了横向移动",
     "Hmm...how can we get over this?": "嗯……这要怎么过去？",
     "Maybe try throwing candy so it hits yourself?": "也许可以朝自己扔颗糖？",
     "Wow! you learned how to jump!": "哇！你学会跳了！",
-    "You were smarter that I thought!": "你比我想的聪明！",
+    "You were smarter than I thought!": "你比我想的聪明！",
     "You learned everything you can!": "你已经学会了全部！",
     "Good luck :)": "祝你好运 :)",
     "That way --------->": "那边 --------->",
     "We are getting up aren't we?!": "我们正在往上爬，对吧？！",
-    "By the way forgot to tell you": "顺便忘了告诉你",
+    "By the way, I forgot to tell you": "顺便忘了告诉你",
     "You can actually control distance of the throw": "你其实能控制扔的距离",
     "By keeping your mouse closer or further to the character :)": "把鼠标放得离角色更近或更远就行 :)",
-    "Go to that way, you ain't supposed to be here :)": "走那边，你不该来这儿 :)",
+    "Go that way, you're not supposed to be here :)": "走那边，你不该来这儿 :)",
     "Left first. Then up.": "先往左。再往上。",
     "This is the top. For now.": "这就是山顶。暂时。",
     "This platform moves. Wait for it, then jump on.": "这块平台会动。等它过来再跳上去。",
@@ -82,21 +84,21 @@ _JA = {
     "continue": "続ける", "new_game": "新しいゲーム", "reset": "リセット", "settings": "設定",
     "exit": "終了", "sound": "効果音", "music": "音楽", "return": "戻る", "language": "言語",
     "Welcome to the game!": "ゲームへようこそ！",
-    "Try clicking your left button of your mouse :)": "マウスの左ボタンを押してみて :)",
+    "Try clicking your left mouse button :)": "マウスの左ボタンを押してみて :)",
     "If you see this": "これが見えたら",
     "Good job! You learned how to move horizontally": "いいね！横移動を覚えたね",
     "Hmm...how can we get over this?": "うーん…どうやって越える？",
     "Maybe try throwing candy so it hits yourself?": "キャンディを自分に投げてみたら？",
     "Wow! you learned how to jump!": "わあ！ジャンプを覚えた！",
-    "You were smarter that I thought!": "思ったより賢いね！",
+    "You were smarter than I thought!": "思ったより賢いね！",
     "You learned everything you can!": "全部覚えたね！",
     "Good luck :)": "がんばって :)",
     "That way --------->": "あっちだ --------->",
     "We are getting up aren't we?!": "上ってるよね？！",
-    "By the way forgot to tell you": "そういえば言い忘れてた",
+    "By the way, I forgot to tell you": "そういえば言い忘れてた",
     "You can actually control distance of the throw": "投げる距離は調整できるよ",
     "By keeping your mouse closer or further to the character :)": "マウスをキャラに近づけたり離したりしてね :)",
-    "Go to that way, you ain't supposed to be here :)": "あっちへ行って。ここにいるべきじゃないよ :)",
+    "Go that way, you're not supposed to be here :)": "あっちへ行って。ここにいるべきじゃないよ :)",
     "Left first. Then up.": "まず左へ。それから上へ。",
     "This is the top. For now.": "ここが頂上。今のところは。",
     "This platform moves. Wait for it, then jump on.": "この足場は動く。来るのを待って飛び乗ろう。",
@@ -122,21 +124,21 @@ _KO = {
     "continue": "계속", "new_game": "새 게임", "reset": "초기화", "settings": "설정",
     "exit": "종료", "sound": "효과음", "music": "음악", "return": "돌아가기", "language": "언어",
     "Welcome to the game!": "게임에 오신 것을 환영합니다!",
-    "Try clicking your left button of your mouse :)": "마우스 왼쪽 버튼을 눌러보세요 :)",
+    "Try clicking your left mouse button :)": "마우스 왼쪽 버튼을 눌러보세요 :)",
     "If you see this": "이게 보인다면",
     "Good job! You learned how to move horizontally": "잘했어요! 수평 이동을 배웠네요",
     "Hmm...how can we get over this?": "음... 어떻게 넘어가지?",
     "Maybe try throwing candy so it hits yourself?": "캔디를 자신에게 던져보면?",
     "Wow! you learned how to jump!": "와! 점프를 배웠네요!",
-    "You were smarter that I thought!": "생각보다 똑똑하네요!",
+    "You were smarter than I thought!": "생각보다 똑똑하네요!",
     "You learned everything you can!": "배울 건 다 배웠어요!",
     "Good luck :)": "행운을 빌어요 :)",
     "That way --------->": "저쪽이에요 --------->",
     "We are getting up aren't we?!": "올라가고 있죠?!",
-    "By the way forgot to tell you": "그런데 말하는 걸 깜빡했네요",
+    "By the way, I forgot to tell you": "그런데 말하는 걸 깜빡했네요",
     "You can actually control distance of the throw": "던지는 거리를 조절할 수 있어요",
     "By keeping your mouse closer or further to the character :)": "마우스를 캐릭터에 가까이 또는 멀리 두세요 :)",
-    "Go to that way, you ain't supposed to be here :)": "저쪽으로 가세요. 여기 있으면 안 돼요 :)",
+    "Go that way, you're not supposed to be here :)": "저쪽으로 가세요. 여기 있으면 안 돼요 :)",
     "Left first. Then up.": "먼저 왼쪽. 그다음 위로.",
     "This is the top. For now.": "여기가 정상. 지금은.",
     "This platform moves. Wait for it, then jump on.": "이 발판은 움직여요. 기다렸다가 올라타세요.",
@@ -162,21 +164,21 @@ _RU = {
     "continue": "Продолжить", "new_game": "Новая игра", "reset": "Сброс", "settings": "Настройки",
     "exit": "Выход", "sound": "Звуки", "music": "Музыка", "return": "Назад", "language": "Язык",
     "Welcome to the game!": "Добро пожаловать в игру!",
-    "Try clicking your left button of your mouse :)": "Попробуй нажать левую кнопку мыши :)",
+    "Try clicking your left mouse button :)": "Попробуй нажать левую кнопку мыши :)",
     "If you see this": "Если ты это видишь",
     "Good job! You learned how to move horizontally": "Молодец! Ты научился двигаться по горизонтали",
     "Hmm...how can we get over this?": "Хм... как это перепрыгнуть?",
     "Maybe try throwing candy so it hits yourself?": "Может, бросить конфету в себя?",
     "Wow! you learned how to jump!": "Ух ты! Ты научился прыгать!",
-    "You were smarter that I thought!": "Ты умнее, чем я думал!",
+    "You were smarter than I thought!": "Ты умнее, чем я думал!",
     "You learned everything you can!": "Ты научился всему, чему мог!",
     "Good luck :)": "Удачи :)",
     "That way --------->": "Туда --------->",
     "We are getting up aren't we?!": "Мы ведь поднимаемся?!",
-    "By the way forgot to tell you": "Кстати, забыл сказать",
+    "By the way, I forgot to tell you": "Кстати, забыл сказать",
     "You can actually control distance of the throw": "Ты можешь управлять дальностью броска",
     "By keeping your mouse closer or further to the character :)": "Держи мышь ближе или дальше от персонажа :)",
-    "Go to that way, you ain't supposed to be here :)": "Иди туда, тебе здесь не место :)",
+    "Go that way, you're not supposed to be here :)": "Иди туда, тебе здесь не место :)",
     "Left first. Then up.": "Сначала влево. Потом вверх.",
     "This is the top. For now.": "Это вершина. Пока что.",
     "This platform moves. Wait for it, then jump on.": "Эта платформа движется. Подожди её и прыгай.",
@@ -202,21 +204,21 @@ _DE = {
     "continue": "Weiter", "new_game": "Neues Spiel", "reset": "Zurücksetzen", "settings": "Einstellungen",
     "exit": "Beenden", "sound": "Soundeffekte", "music": "Musik", "return": "Zurück", "language": "Sprache",
     "Welcome to the game!": "Willkommen im Spiel!",
-    "Try clicking your left button of your mouse :)": "Klick mal mit der linken Maustaste :)",
+    "Try clicking your left mouse button :)": "Klick mal mit der linken Maustaste :)",
     "If you see this": "Wenn du das siehst",
     "Good job! You learned how to move horizontally": "Gut gemacht! Du hast gelernt, dich seitwärts zu bewegen",
     "Hmm...how can we get over this?": "Hm... wie kommt man da rüber?",
     "Maybe try throwing candy so it hits yourself?": "Vielleicht eine Süßigkeit auf dich selbst werfen?",
     "Wow! you learned how to jump!": "Wow! Du hast das Springen gelernt!",
-    "You were smarter that I thought!": "Du warst schlauer, als ich dachte!",
+    "You were smarter than I thought!": "Du warst schlauer, als ich dachte!",
     "You learned everything you can!": "Du hast alles gelernt, was du kannst!",
     "Good luck :)": "Viel Glück :)",
     "That way --------->": "Da lang --------->",
     "We are getting up aren't we?!": "Wir steigen auf, oder?!",
-    "By the way forgot to tell you": "Übrigens, hab ich vergessen zu sagen",
+    "By the way, I forgot to tell you": "Übrigens, hab ich vergessen zu sagen",
     "You can actually control distance of the throw": "Du kannst die Wurfweite steuern",
     "By keeping your mouse closer or further to the character :)": "Maus näher oder weiter vom Charakter :)",
-    "Go to that way, you ain't supposed to be here :)": "Geh da lang, hier solltest du nicht sein :)",
+    "Go that way, you're not supposed to be here :)": "Geh da lang, hier solltest du nicht sein :)",
     "Left first. Then up.": "Erst nach links. Dann nach oben.",
     "This is the top. For now.": "Das ist der Gipfel. Vorerst.",
     "This platform moves. Wait for it, then jump on.": "Diese Plattform bewegt sich. Warte und spring drauf.",
@@ -242,21 +244,21 @@ _FR = {
     "continue": "Continuer", "new_game": "Nouvelle partie", "reset": "Réinitialiser", "settings": "Paramètres",
     "exit": "Quitter", "sound": "Effets sonores", "music": "Musique", "return": "Retour", "language": "Langue",
     "Welcome to the game!": "Bienvenue dans le jeu !",
-    "Try clicking your left button of your mouse :)": "Essaie de cliquer avec le bouton gauche :)",
+    "Try clicking your left mouse button :)": "Essaie de cliquer avec le bouton gauche :)",
     "If you see this": "Si tu vois ça",
     "Good job! You learned how to move horizontally": "Bien joué ! Tu as appris à bouger horizontalement",
     "Hmm...how can we get over this?": "Hmm... comment passer par-dessus ?",
     "Maybe try throwing candy so it hits yourself?": "Essaie de te lancer un bonbon dessus ?",
     "Wow! you learned how to jump!": "Waouh ! Tu as appris à sauter !",
-    "You were smarter that I thought!": "Tu es plus malin que je pensais !",
+    "You were smarter than I thought!": "Tu es plus malin que je pensais !",
     "You learned everything you can!": "Tu as tout appris !",
     "Good luck :)": "Bonne chance :)",
     "That way --------->": "Par là --------->",
     "We are getting up aren't we?!": "On monte, hein ?!",
-    "By the way forgot to tell you": "Au fait, j'ai oublié de te dire",
+    "By the way, I forgot to tell you": "Au fait, j'ai oublié de te dire",
     "You can actually control distance of the throw": "Tu peux régler la distance du lancer",
     "By keeping your mouse closer or further to the character :)": "En approchant ou éloignant la souris du personnage :)",
-    "Go to that way, you ain't supposed to be here :)": "Va par là, tu n'es pas censé être ici :)",
+    "Go that way, you're not supposed to be here :)": "Va par là, tu n'es pas censé être ici :)",
     "Left first. Then up.": "D'abord à gauche. Puis en haut.",
     "This is the top. For now.": "C'est le sommet. Pour l'instant.",
     "This platform moves. Wait for it, then jump on.": "Cette plateforme bouge. Attends-la et saute dessus.",
@@ -282,21 +284,21 @@ _IT = {
     "continue": "Continua", "new_game": "Nuova partita", "reset": "Reimposta", "settings": "Impostazioni",
     "exit": "Esci", "sound": "Effetti sonori", "music": "Musica", "return": "Indietro", "language": "Lingua",
     "Welcome to the game!": "Benvenuto nel gioco!",
-    "Try clicking your left button of your mouse :)": "Prova a premere il tasto sinistro del mouse :)",
+    "Try clicking your left mouse button :)": "Prova a premere il tasto sinistro del mouse :)",
     "If you see this": "Se vedi questo",
     "Good job! You learned how to move horizontally": "Bravo! Hai imparato a muoverti in orizzontale",
     "Hmm...how can we get over this?": "Hmm... come si supera?",
     "Maybe try throwing candy so it hits yourself?": "Prova a lanciarti una caramella addosso?",
     "Wow! you learned how to jump!": "Wow! Hai imparato a saltare!",
-    "You were smarter that I thought!": "Sei più sveglio di quanto pensassi!",
+    "You were smarter than I thought!": "Sei più sveglio di quanto pensassi!",
     "You learned everything you can!": "Hai imparato tutto quello che puoi!",
     "Good luck :)": "Buona fortuna :)",
     "That way --------->": "Da quella parte --------->",
     "We are getting up aren't we?!": "Stiamo salendo, vero?!",
-    "By the way forgot to tell you": "A proposito, ho dimenticato di dirtelo",
+    "By the way, I forgot to tell you": "A proposito, ho dimenticato di dirtelo",
     "You can actually control distance of the throw": "Puoi controllare la distanza del lancio",
     "By keeping your mouse closer or further to the character :)": "Tenendo il mouse più vicino o lontano dal personaggio :)",
-    "Go to that way, you ain't supposed to be here :)": "Vai da quella parte, non dovresti essere qui :)",
+    "Go that way, you're not supposed to be here :)": "Vai da quella parte, non dovresti essere qui :)",
     "Left first. Then up.": "Prima a sinistra. Poi in alto.",
     "This is the top. For now.": "Questa è la cima. Per ora.",
     "This platform moves. Wait for it, then jump on.": "Questa piattaforma si muove. Aspettala e saltaci sopra.",
@@ -322,21 +324,21 @@ _ES = {
     "continue": "Continuar", "new_game": "Nueva partida", "reset": "Reiniciar", "settings": "Ajustes",
     "exit": "Salir", "sound": "Efectos de sonido", "music": "Música", "return": "Volver", "language": "Idioma",
     "Welcome to the game!": "¡Bienvenido al juego!",
-    "Try clicking your left button of your mouse :)": "Prueba a hacer clic con el botón izquierdo :)",
+    "Try clicking your left mouse button :)": "Prueba a hacer clic con el botón izquierdo :)",
     "If you see this": "Si ves esto",
     "Good job! You learned how to move horizontally": "¡Bien hecho! Has aprendido a moverte en horizontal",
     "Hmm...how can we get over this?": "Hmm... ¿cómo se pasa esto?",
     "Maybe try throwing candy so it hits yourself?": "¿Y si te lanzas un caramelo a ti mismo?",
     "Wow! you learned how to jump!": "¡Guau! ¡Has aprendido a saltar!",
-    "You were smarter that I thought!": "¡Eres más listo de lo que pensaba!",
+    "You were smarter than I thought!": "¡Eres más listo de lo que pensaba!",
     "You learned everything you can!": "¡Has aprendido todo lo que podías!",
     "Good luck :)": "Buena suerte :)",
     "That way --------->": "Por ahí --------->",
     "We are getting up aren't we?!": "Estamos subiendo, ¿verdad?!",
-    "By the way forgot to tell you": "Por cierto, olvidé decirte",
+    "By the way, I forgot to tell you": "Por cierto, olvidé decirte",
     "You can actually control distance of the throw": "Puedes controlar la distancia del lanzamiento",
     "By keeping your mouse closer or further to the character :)": "Acercando o alejando el ratón del personaje :)",
-    "Go to that way, you ain't supposed to be here :)": "Ve por ahí, no deberías estar aquí :)",
+    "Go that way, you're not supposed to be here :)": "Ve por ahí, no deberías estar aquí :)",
     "Left first. Then up.": "Primero a la izquierda. Luego arriba.",
     "This is the top. For now.": "Esta es la cima. Por ahora.",
     "This platform moves. Wait for it, then jump on.": "Esta plataforma se mueve. Espérala y salta encima.",
@@ -369,7 +371,37 @@ STRINGS = {
     "es": _ES,
 }
 
+# Wind-zone hint (level text added together with the wind mechanic).
+# Keeps all nine languages in sync without touching the big STRINGS literals.
+_WIND_HINT = {
+    "zh": "前面是风口：稳住落点！",
+    "ja": "この先は強風。押されても踏ん張って！",
+    "ko": "앞쪽은 돌풍. 밀려도 버텨요!",
+    "ru": "Впереди ветер: держи курс!",
+    "de": "Böen voraus: halt die Linie!",
+    "fr": "Rafales devant : tiens ta ligne !",
+    "it": "Raffiche davanti: tieni la linea!",
+    "es": "¡Ráfagas delante! Mantén la línea.",
+}
+for _code, _label in _WIND_HINT.items():
+    STRINGS.setdefault(_code, {})["Gusts ahead: hold your line!"] = _label
+
 current = "en"
+
+# Noto Sans SC subset (OFL) shipped with the game: keeps CJK readable on systems
+# that have no CJK font installed at all.
+BUNDLED_CJK_FONT = paths.asset("fonts", "NotoSansSC-Regular-subset-v2.ttf")
+BUNDLED_KO_FONT = paths.asset("fonts", "NotoSansKR-Regular-subset-v2.ttf")
+
+
+def _bundled_font(code):
+    """Fallback font shipped with the game for this CJK language."""
+    preferred = BUNDLED_KO_FONT if code == "ko" else BUNDLED_CJK_FONT
+    if os.path.exists(preferred):
+        return preferred
+    if os.path.exists(BUNDLED_CJK_FONT):
+        return BUNDLED_CJK_FONT
+    return None
 
 # CJK needs a system CJK font; other languages keep the pygame default font (original look)
 _FONT_PATHS = {
@@ -381,20 +413,23 @@ _FONT_PATHS = {
            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
            "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-           "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"],
+           "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+           BUNDLED_CJK_FONT],
     "ja": [r"C:\Windows\Fonts\yugothm.ttc", r"C:\Windows\Fonts\msgothic.ttc",
            r"C:\Windows\Fonts\msyh.ttc",
            "/System/Library/Fonts/Hiragino Kaku Gothic ProN.ttc",
            "/System/Library/Fonts/Hiragino Sans GB.ttc",
            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-           "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"],
+           "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+           BUNDLED_CJK_FONT],
     "ko": [r"C:\Windows\Fonts\malgun.ttf", r"C:\Windows\Fonts\msyh.ttc",
            "/System/Library/Fonts/AppleSDGothicNeo.ttc",
            "/System/Library/Fonts/AppleGothic.ttf",
            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-           "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc"],
+           "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+           BUNDLED_KO_FONT],
 }
 # Linux distros move these fonts around, so also search by pattern.
 _FONT_GLOBS = {
@@ -421,7 +456,11 @@ def _resolve_fonts():
             table[code] = [found]
         else:
             extra = _search_glob(code)
-            table[code] = [extra] if extra else []
+            if extra:
+                table[code] = [extra]
+            else:
+                bundled = _bundled_font(code)
+                table[code] = [bundled] if bundled else []
     return table
 
 
@@ -437,6 +476,13 @@ def _font_path(code):
     if extra:
         _FONT_PATHS.setdefault(code, []).append(extra)
         return extra
+    # The bundled fonts are CJK-only substitutes: other languages keep
+    # the pygame default font (it has full Latin/Cyrillic coverage).
+    if code in ("zh", "ja", "ko"):
+        bundled = _bundled_font(code)
+        if bundled:
+            _FONT_PATHS.setdefault(code, []).append(bundled)
+            return bundled
     return None
 
 
@@ -739,16 +785,304 @@ for _code, _word in _SKIP.items():
     STRINGS.setdefault(_code, {})["skip"] = _word
 
 
-_FINAL_HINT = "Gifts first: walk to the cabin!"
+_FINAL_HINT = "Gifts first: throw candy and slide over to the cabin!"
 _FINAL = {
-    "zh": "先把礼物送过去：走到那间小屋！",
-    "ja": "まずプレゼントを届けよう：あの小屋へ歩こう！",
-    "ko": "선물부터 전하자: 저 오두막으로 걸어가!",
-    "ru": "Сначала подарки: иди к хижине!",
-    "de": "Erst die Geschenke: geh zur Hütte!",
-    "fr": "D'abord les cadeaux : va à la cabane !",
-    "it": "Prima i regali: vai alla baita!",
-    "es": "Primero los regalos: ¡ve a la cabaña!",
+    "zh": "先把礼物送过去：扔糖果借反冲滑到小屋！",
+    "ja": "まずプレゼントを届けよう：キャンディを投げて小屋まで滑ろう！",
+    "ko": "선물부터 전하자: 사탕을 던져 오두막까지 미끄러져 가자!",
+    "ru": "Сначала подарки: бросай конфеты и скользи к хижине!",
+    "de": "Erst die Geschenke: wirf Süßigkeiten und rutsche zur Hütte!",
+    "fr": "D'abord les cadeaux : lance des bonbons et glisse jusqu'à la cabane !",
+    "it": "Prima i regali: lancia caramelle e scivola fino alla baita!",
+    "es": "Primero los regalos: ¡lanza caramelos y deslízate hasta la cabaña!",
 }
 for _code, _txt in _FINAL.items():
     STRINGS.setdefault(_code, {})[_FINAL_HINT] = _txt
+
+
+# Wind zone sign (level text: looked up by its English source string)
+_WIND_SIGN = "Gusts ahead: throw against the wind!"
+_WIND_SIGN_T = {
+    "zh": "前方起风：朝反方向扔糖果借力！",
+    "ja": "この先は強風：風と逆向きにキャンディを投げよう！",
+    "ko": "앞쪽에 강풍: 바람 반대쪽으로 사탕을 던지세요!",
+    "ru": "Впереди ветер: бросай конфеты против ветра!",
+    "de": "Gegenwind: wirf die Süßigkeit gegen den Wind!",
+    "fr": "Du vent : lance le bonbon contre le vent !",
+    "it": "Vento forte: lancia la caramella controvento!",
+    "es": "Viento fuerte: lanza el caramelo contra el viento!",
+}
+for _code, _txt in _WIND_SIGN_T.items():
+    STRINGS[_code][_WIND_SIGN] = _txt
+
+
+# Extra hint (throwing backwards brakes you)
+_BRAKE_TIP = "Backward throw also brakes you. Throw the other way to slow down."
+_BRAKE_T = {
+    "zh": "反着扔也能刹车：想减速就往前进方向扔。",
+    "ja": "逆向きに投げるとブレーキになる。減速したいときは進行方向へ投げよう。",
+    "ko": "반대로 던지면 브레이크가 돼요. 속도를 줄이려면 나아가는 방향으로 던지세요.",
+    "ru": "Бросок назад работает как тормоз: чтобы замедлиться, бросай в сторону движения.",
+    "de": "Rückwärts werfen bremst: wirf in die Bewegungsrichtung, um langsamer zu werden.",
+    "fr": "Lancer en arrière freine : lance dans le sens du mouvement pour ralentir.",
+    "it": "Lanciare all'indietro frena: lancia nella direzione del movimento per rallentare.",
+    "es": "Lanzar hacia atrás frena: lanza en la dirección del movimiento para frenar.",
+}
+for _code, _txt in _BRAKE_T.items():
+    STRINGS[_code][_BRAKE_TIP] = _txt
+
+
+# Delete-save confirmation dialog
+UI_EN["delete_save_title"] = "Delete save slot {n}?"
+UI_EN["delete_save_hint"] = "This cannot be undone."
+UI_EN["delete"] = "Delete"
+UI_EN["cancel"] = "Cancel"
+_DELETE = {
+    "zh": ("删除存档 {n}？", "此操作无法撤销。", "删除", "取消"),
+    "ja": ("セーブ {n} を削除しますか？", "この操作は取り消せません。", "削除", "キャンセル"),
+    "ko": ("저장 {n}을(를) 삭제할까요?", "이 작업은 되돌릴 수 없습니다.", "삭제", "취소"),
+    "ru": ("Удалить сохранение {n}?", "Отменить это будет нельзя.", "Удалить", "Отмена"),
+    "de": ("Spielstand {n} löschen?", "Das kann nicht rückgängig gemacht werden.", "Löschen", "Abbrechen"),
+    "fr": ("Supprimer la sauvegarde {n} ?", "Cette action est irréversible.", "Supprimer", "Annuler"),
+    "it": ("Eliminare il salvataggio {n}?", "Questa azione è irreversibile.", "Elimina", "Annulla"),
+    "es": ("¿Borrar la partida {n}?", "Esta acción no se puede deshacer.", "Borrar", "Cancelar"),
+}
+for _code, (_t, _h, _d, _c) in _DELETE.items():
+    STRINGS[_code]["delete_save_title"] = _t
+    STRINGS[_code]["delete_save_hint"] = _h
+    STRINGS[_code]["delete"] = _d
+    STRINGS[_code]["cancel"] = _c
+
+
+# Tutorial screen
+UI_EN["tutorial"] = "Tutorial"
+_TUT = {
+    "zh": "教程",
+    "ja": "チュートリアル",
+    "ko": "튜토리얼",
+    "ru": "Обучение",
+    "de": "Tutorial",
+    "fr": "Tutoriel",
+    "it": "Tutoriale",
+    "es": "Tutorial",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["tutorial"] = _txt
+
+UI_EN["Aim and throw"] = "Aim and throw"
+_TUT = {
+    "zh": "瞄准与投掷",
+    "ja": "ねらいと投げ",
+    "ko": "조준과 던지기",
+    "ru": "Прицел и бросок",
+    "de": "Zielen und werfen",
+    "fr": "Viser et lancer",
+    "it": "Mira e lancio",
+    "es": "Apunta y lanza",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Aim and throw"] = _txt
+
+UI_EN["Hold the left mouse button to aim. The dotted line shows where the candy flies and where it will land."] = "Hold the left mouse button to aim. The dotted line shows where the candy flies and where it will land."
+_TUT = {
+    "zh": "按住鼠标左键瞄准。虚线显示糖果会飞到哪里、落在哪里。",
+    "ja": "左クリックを押したまま狙う。点線がキャンディの飛ぶ先と落ちる場所を示す。",
+    "ko": "마우스 왼쪽 버튼을 누른 채 조준하세요. 점선이 사탕이 날아가 떨어질 위치를 보여줍니다.",
+    "ru": "Держи левую кнопку мыши, чтобы прицелиться. Пунктир показывает, куда полетит конфета.",
+    "de": "Linke Maustaste halten zum Zielen. Die Punktlinie zeigt, wohin die Süßigkeit fliegt.",
+    "fr": "Maintiens le clic gauche pour viser. La ligne pointillée montre où le bonbon va voler.",
+    "it": "Tieni premuto il tasto sinistro per mirare. La linea tratteggiata mostra dove vola la caramella.",
+    "es": "Mantén el botón izquierdo para apuntar. La línea de puntos muestra dónde volará el caramelo.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Hold the left mouse button to aim. The dotted line shows where the candy flies and where it will land."] = _txt
+
+UI_EN["Throw strength"] = "Throw strength"
+_TUT = {
+    "zh": "投掷力度",
+    "ja": "投げる強さ",
+    "ko": "던지는 힘",
+    "ru": "Сила броска",
+    "de": "Wurfstärke",
+    "fr": "Force du lancer",
+    "it": "Forza del lancio",
+    "es": "Fuerza del lanzamiento",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Throw strength"] = _txt
+
+UI_EN["The bar under the character shows how strong this throw is. Aiming further away throws harder."] = "The bar under the character shows how strong this throw is. Aiming further away throws harder."
+_TUT = {
+    "zh": "角色下方的横条显示这一下的力度。鼠标离人越远，扔得越远。",
+    "ja": "キャラの下のバーが投げの強さ。遠くを狙うほど強く飛ぶ。",
+    "ko": "캐릭터 아래 막대가 이번 던지기의 힘을 보여줍니다. 멀리 조준할수록 세게 던집니다.",
+    "ru": "Полоска под персонажем показывает силу броска. Чем дальше прицел, тем сильнее бросок.",
+    "de": "Der Balken unter der Figur zeigt die Wurfstärke. Weiter zielen = stärker werfen.",
+    "fr": "La barre sous le personnage montre la force du lancer. Viser plus loin = lancer plus fort.",
+    "it": "La barra sotto il personaggio mostra la forza. Mira più lontano per lanciare più forte.",
+    "es": "La barra bajo el personaje muestra la fuerza. Apuntar más lejos lanza más fuerte.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["The bar under the character shows how strong this throw is. Aiming further away throws harder."] = _txt
+
+UI_EN["Move with recoil"] = "Move with recoil"
+_TUT = {
+    "zh": "靠后坐力移动",
+    "ja": "反動で動く",
+    "ko": "반동으로 이동",
+    "ru": "Движение отдачей",
+    "de": "Bewegung per Rückstoß",
+    "fr": "Bouger par recul",
+    "it": "Muoversi col rinculo",
+    "es": "Moverse con el retroceso",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Move with recoil"] = _txt
+
+UI_EN["There is no walk key. Throw backwards to slide forward, and throw at your feet to jump."] = "There is no walk key. Throw backwards to slide forward, and throw at your feet to jump."
+_TUT = {
+    "zh": "没有走键：往后扔往前滑，往脚下扔起跳。",
+    "ja": "歩くキーはない。後ろに投げると前へ滑り、足元に投げるとジャンプする。",
+    "ko": "걷기 키는 없습니다. 뒤로 던지면 앞으로 미끄러지고, 발밑에 던지면 점프합니다.",
+    "ru": "Кнопки «идти» нет: бросай назад — скользишь вперёд, бросай под ноги — прыгаешь.",
+    "de": "Es gibt keine Lauftaste: nach hinten werfen = vorwärts rutschen, nach unten werfen = springen.",
+    "fr": "Pas de touche pour marcher : lance en arrière pour glisser en avant, lance à tes pieds pour sauter.",
+    "it": "Non c'è un tasto per camminare: lancia indietro per scivolare avanti, lancia ai piedi per saltare.",
+    "es": "No hay tecla para caminar: lanza hacia atrás para deslizarte, lanza a tus pies para saltar.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["There is no walk key. Throw backwards to slide forward, and throw at your feet to jump."] = _txt
+
+UI_EN["Climb progress"] = "Climb progress"
+_TUT = {
+    "zh": "攀爬进度",
+    "ja": "登った高さ",
+    "ko": "등반 진행도",
+    "ru": "Прогресс восхождения",
+    "de": "Aufstiegsfortschritt",
+    "fr": "Progression",
+    "it": "Progresso",
+    "es": "Progreso",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Climb progress"] = _txt
+
+UI_EN["The Santa on the left edge shows how high you have climbed."] = "The Santa on the left edge shows how high you have climbed."
+_TUT = {
+    "zh": "左侧的圣诞老人显示你爬了多高。",
+    "ja": "左端のサンタがどれだけ登ったかを示す。",
+    "ko": "왼쪽의 산타가 얼마나 올라왔는지 보여줍니다.",
+    "ru": "Санта слева показывает, как высоко ты поднялся.",
+    "de": "Der Weihnachtsmann links zeigt, wie hoch du geklettert bist.",
+    "fr": "Le Père Noël à gauche montre à quelle hauteur tu es.",
+    "it": "Il Babbo Natale a sinistra mostra quanto sei salito.",
+    "es": "El Santa de la izquierda muestra cuánto has subido.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["The Santa on the left edge shows how high you have climbed."] = _txt
+
+UI_EN["Find the pointer"] = "Find the pointer"
+_TUT = {
+    "zh": "唤出光标",
+    "ja": "カーソルを出す",
+    "ko": "커서 보기",
+    "ru": "Показать курсор",
+    "de": "Mauszeiger zeigen",
+    "fr": "Afficher le curseur",
+    "it": "Mostra il cursore",
+    "es": "Mostrar el cursor",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["Find the pointer"] = _txt
+
+UI_EN["There is no pointer while playing. Hold Alt to show the cursor again."] = "There is no pointer while playing. Hold Alt to show the cursor again."
+_TUT = {
+    "zh": "游玩时没有光标，按住 Alt 就会显示。",
+    "ja": "プレイ中はカーソルがない。Alt を押すと表示される。",
+    "ko": "플레이 중에는 커서가 없습니다. Alt를 누르면 다시 표시됩니다.",
+    "ru": "Во время игры курсора нет. Зажми Alt, чтобы показать его.",
+    "de": "Im Spiel gibt es keinen Zeiger. Halte Alt, um ihn zu zeigen.",
+    "fr": "Pas de curseur pendant le jeu. Maintiens Alt pour le montrer.",
+    "it": "Durante il gioco non c'è cursore. Tieni Alt per mostrarlo.",
+    "es": "No hay cursor mientras juegas. Mantén Alt para mostrarlo.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code]["There is no pointer while playing. Hold Alt to show the cursor again."] = _txt
+
+
+# Achievements hidden tab
+UI_EN["hidden"] = "Hidden"
+_HIDDEN_TAB = {
+    "zh": "隐藏", "ja": "隠し", "ko": "숨김", "ru": "Скрытые",
+    "de": "Versteckt", "fr": "Cachés", "it": "Nascosti", "es": "Ocultos",
+}
+for _code, _txt in _HIDDEN_TAB.items():
+    STRINGS[_code]["hidden"] = _txt
+
+
+# Achievement completed label (hidden achievements have one level)
+UI_EN["completed"] = "Completed"
+_COMPLETED = {
+    "zh": "已完成", "ja": "達成", "ko": "완료", "ru": "Выполнено",
+    "de": "Erreicht", "fr": "Terminé", "it": "Completato", "es": "Completado",
+}
+for _code, _txt in _COMPLETED.items():
+    STRINGS[_code]["completed"] = _txt
+
+
+# Shown for 5 s when the player falls at the same spot again and again
+UI_EN["fall_tip"] = ("This spot keeps beating you. Brake before the jump, "
+                     "then leap.")
+_FALL_TIP = {
+    "zh": "这里你已经掉下去好几次了：起跳前先反扔刹车，再跳。",
+    "ja": "ここで何度も落ちている。跳ぶ前に逆向きに投げてブレーキをかけよう。",
+    "ko": "여기서 여러 번 떨어졌어요. 뛰기 전에 반대로 던져 브레이크를 걸어 보세요.",
+    "ru": "Ты уже падал здесь несколько раз. Затормози броском назад, потом прыгай.",
+    "de": "Hier bist du schon oft gefallen. Bremse vor dem Sprung mit einem Rückwurf.",
+    "fr": "Tu es déjà tombé plusieurs fois ici. Freine avant de sauter.",
+    "it": "Sei già caduto qui più volte. Frena prima del salto.",
+    "es": "Ya has caído varias veces aquí. Frena antes de saltar.",
+}
+for _code, _txt in _FALL_TIP.items():
+    STRINGS[_code]["fall_tip"] = _txt
+
+
+# Menu title: every language keeps its own deliberate typo flavour, like
+# "SLIPERY" instead of "SLIPPERY" in English.
+UI_EN["game_title"] = "A SLIPERY CLIMB"
+_GAME_TITLE = {
+    "zh": "一次滑留的攀登",
+    "ja": "スリピー・クライム",
+    "ko": "미끌어운 등반",
+    "ru": "Скользкое восхождние",
+    "de": "Ein rutschigerr Aufstieg",
+    "fr": "Une ascencion glissante",
+    "it": "Una salita scivoloza",
+    "es": "Una escalada resbaladisa",
+}
+for _code, _txt in _GAME_TITLE.items():
+    STRINGS[_code]["game_title"] = _txt
+
+
+# Extra lines for the longer victory cutscene
+UI_EN["win_line4"] = "Every metre was worth it."
+UI_EN["win_line5"] = "See you next winter."
+UI_EN["win_recap"] = "Highest point: {m} m"
+_WIN_EXTRA = {
+    "zh": ("每一米都值得。", "明年冬天再见。", "最高点：{m} 米"),
+    "ja": ("どの一歩も無駄じゃなかった。", "また来年の冬に。", "最高到達点：{m} m"),
+    "ko": ("모든 1미터가 값졌어요.", "내년 겨울에 만나요.", "최고 지점: {m} m"),
+    "ru": ("Каждый метр был не зря.", "До следующей зимы.", "Высшая точка: {m} м"),
+    "de": ("Jeder Meter hat sich gelohnt.", "Bis zum nächsten Winter.",
+           "Höchster Punkt: {m} m"),
+    "fr": ("Chaque mètre en valait la peine.", "À l'hiver prochain.",
+           "Point le plus haut : {m} m"),
+    "it": ("Ogni metro è valso la pena.", "Al prossimo inverno.",
+           "Punto più alto: {m} m"),
+    "es": ("Cada metro valió la pena.", "Hasta el próximo invierno.",
+           "Punto más alto: {m} m"),
+}
+for _code, (_l4, _l5, _recap) in _WIN_EXTRA.items():
+    STRINGS[_code]["win_line4"] = _l4
+    STRINGS[_code]["win_line5"] = _l5
+    STRINGS[_code]["win_recap"] = _recap

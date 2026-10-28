@@ -18,7 +18,12 @@ for _ci, _cen in enumerate(chatter.LINES["en"]):
 import time
 
 pygame.init()
-pygame.mixer.init()  # init the mixer
+try:
+    pygame.mixer.init()  # init the mixer
+    AUDIO_OK = True
+except Exception as _audio_error:  # no sound card: keep running silently
+    print("Audio disabled:", _audio_error)
+    AUDIO_OK = False
 
 # Screen setup
 screen_info = pygame.display.Info()
@@ -39,6 +44,26 @@ def _display_flags():
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT), _display_flags())
 pygame.display.set_caption("A SLIPERY CLIMB")
+
+
+def _hide_os_cursor():
+    """Hide the OS pointer. macOS often ignores set_visible(), so also set a
+    fully transparent cursor bitmap there."""
+    try:
+        pygame.mouse.set_visible(False)
+    except Exception:
+        pass
+    if sys.platform == "darwin":
+        try:
+            from pygame.cursors import Cursor
+            blank = pygame.Surface((8, 8), pygame.SRCALPHA)
+            blank.fill((0, 0, 0, 0))
+            pygame.mouse.set_cursor(Cursor((0, 0), blank))
+        except Exception:
+            pass
+
+
+_hide_os_cursor()
 
 # Colors
 NIGHT_WHITE = (178, 178, 178)
@@ -71,6 +96,7 @@ class GameState(Enum):
     PLAYING = 2
     SETTINGS = 3
     CUTSCENE = 6
+    TUTORIAL = 7
 
 # Game constants
 ground_level = HEIGHT - 200
@@ -100,9 +126,12 @@ player_y = ground_level - player_height
 player_velocity_x = 0
 player_velocity_y = 0
 player_gravity = 0.5
+player_max_fall_speed = 40.0   # px/frame, keeps fast falls from tunnelling
+PLAYER_SAVE_MAX_SPEED = 60.0   # clamp for velocities read from save files
+MAX_CLIMB_HEIGHT = 18500.0     # px; the progress bar is scaled to this
 player_max_horizontal_speed = 15
 ice_friction = 0.02
-summit_friction = 0.60   # more friction on the summit platform, but still slides
+summit_friction = 0.30   # a bit more grip than the ice, but you still slide
 air_resistance = 0.005
 player_is_on_ground = False
 player_ground_platform = None
@@ -138,7 +167,7 @@ screen_shake_offset_y = 0
 # ========== Wind zone: the exposed ridge in the middle of the mountain ==========
 WIND_LO = 8900          # feet height where the gusts start
 WIND_HI = 9900          # ... and end
-WIND_STRENGTH = 0.05   # px/frame^2, peaks at +-this; gentle on purpose
+WIND_STRENGTH = 0.50   # px/frame of sideways sway at the gust peak
 WIND_PERIOD = 4.0       # seconds for one full left-right gust cycle
 
 # Camera
@@ -153,6 +182,8 @@ player_velocity_decay_factor = 0.03
 player_momentum_decay = 0.05
 player_last_ground_time = 0.0
 player_continuous_air_time = 0.0
+run_peak_height = 0.0   # highest point of this run (victory recap)
+idle_seconds = 0.0
 player_momentum = 1.0
 
 # Cursor
@@ -169,6 +200,85 @@ summit_msg_timer = 0.0
 summit_msg_shown = False
 SUMMIT_MSG_TIME = 4.5
 SUMMIT_MSG_HEIGHT = 13900
+
+# Summit music: once the player stands on the peak near the cabin, the main
+# theme fades out and a slow music-box "Jingle Bells" (public domain) fades in.
+JINGLE_FADE_OUT = 2.6     # seconds for the main theme to fade away
+JINGLE_FADE_IN = 5.0      # seconds for Jingle Bells to fade in
+JINGLE_FILE = "jingle_bells.wav"
+
+summit_music_stage = 0    # 0 none, 1 fading out, 2 Jingle Bells fade-in, 3 skip
+summit_music_timer = 0.0
+
+
+def _music_file_playable(name):
+    return os.path.exists(paths.asset("sounds", name))
+
+
+def start_summit_music():
+    """Begin the fade to the summit theme (safe to call every frame)."""
+    global summit_music_stage, summit_music_timer
+    if summit_music_stage != 0:
+        return
+    if not pygame.mixer.get_init():
+        return
+    if not _music_file_playable(JINGLE_FILE):
+        summit_music_stage = 3
+        return
+    summit_music_stage = 1
+    summit_music_timer = 0.0
+    try:
+        pygame.mixer.music.fadeout(int(JINGLE_FADE_OUT * 1000))
+    except Exception:
+        pass
+
+
+def update_summit_music(dt):
+    """Drive the cross-fade; call every frame (any game state)."""
+    global summit_music_stage, summit_music_timer
+    if summit_music_stage == 0 or summit_music_stage == 3:
+        return
+    if not pygame.mixer.get_init():
+        summit_music_stage = 0
+        return
+    summit_music_timer += dt
+    if summit_music_stage == 1:
+        if summit_music_timer >= JINGLE_FADE_OUT:
+            try:
+                pygame.mixer.music.load(paths.asset("sounds", JINGLE_FILE))
+                pygame.mixer.music.set_volume(0.0)
+                pygame.mixer.music.play(-1)
+                summit_music_stage = 2
+                summit_music_timer = 0.0
+            except Exception:
+                summit_music_stage = 3
+    elif summit_music_stage == 2:
+        progress = min(1.0, summit_music_timer / JINGLE_FADE_IN)
+        try:
+            pygame.mixer.music.set_volume(music_volume * progress)
+        except Exception:
+            pass
+
+
+def reset_summit_music():
+    """Back to the normal theme (new game / loaded save)."""
+    global summit_music_stage, summit_music_timer
+    if summit_music_stage == 0:
+        return
+    summit_music_stage = 0
+    summit_music_timer = 0.0
+    if not pygame.mixer.get_init():
+        return
+    try:
+        pygame.mixer.music.stop()
+        if _music_file_playable("BGM.wav"):
+            pygame.mixer.music.load(paths.asset("sounds", "BGM.wav"))
+            pygame.mixer.music.set_volume(music_volume)
+            pygame.mixer.music.play(-1)
+            sound_manager.bgm_playing = True
+    except Exception:
+        pass
+
 
 # Random chatter
 chatter_timer = 22.0
@@ -188,7 +298,7 @@ cutscene_kind = "intro"
 cutscene_t = 0.0
 cutscene_len = 9.0
 CUTSCENE_INTRO_LEN = 9.5
-CUTSCENE_WIN_LEN = 8.5
+CUTSCENE_WIN_LEN = 20.0
 cutscene_hold = False
 current_slot = 1
 
@@ -386,6 +496,8 @@ class SoundManager:
     
     def play_bgm(self):
         """Play background music."""
+        if not pygame.mixer.get_init():
+            return
         if not self.bgm_playing:
             pygame.mixer.music.set_volume(self.music_volume)
             pygame.mixer.music.play(-1)  # loop
@@ -393,29 +505,39 @@ class SoundManager:
     
     def stop_bgm(self):
         """Stop background music."""
+        if not pygame.mixer.get_init():
+            return
         pygame.mixer.music.stop()
         self.bgm_playing = False
     
     def set_music_volume(self, volume):
         """Set music volume."""
         self.music_volume = volume
+        if not pygame.mixer.get_init():
+            return
         pygame.mixer.music.set_volume(volume)
     
     def set_sound_volume(self, volume):
         """Set sound volume."""
         self.sound_volume = volume
+        if not pygame.mixer.get_init():
+            return
         for sound_list in self.sounds.values():
             for sound in sound_list:
                 sound.set_volume(volume)
     
     def play_throw(self):
         """Play a random throw sound."""
+        if not pygame.mixer.get_init():
+            return
         if self.sounds['throw']:
             sound = random.choice(self.sounds['throw'])
             sound.play()
     
     def play_explosion(self):
         """Play a random explosion sound."""
+        if not pygame.mixer.get_init():
+            return
         if self.sounds['explosion']:
             sound = random.choice(self.sounds['explosion'])
             sound.play()
@@ -910,6 +1032,7 @@ class Candy:
     
     def explode(self):
         self.exploded = True
+        achievements.add_chain()
         
         collision, collision_type, adjusted_x, adjusted_y = self.check_collision()
         if collision:
@@ -923,7 +1046,8 @@ class Candy:
         global screen_shake
         screen_shake = 10.0
         
-        apply_explosion_force(self.x, self.y)
+        age = pygame.time.get_ticks() / 1000.0 - self.creation_time
+        apply_explosion_force(self.x, self.y, age)
     
     def draw(self, screen):
         if self.exploded:
@@ -1131,7 +1255,7 @@ class PlayerTextureSystem:
 player_textures = PlayerTextureSystem()
 
 # ========== Explosion force ==========
-def apply_explosion_force(explosion_x, explosion_y):
+def apply_explosion_force(explosion_x, explosion_y, age=0.0):
     global player_velocity_x, player_velocity_y
     
     player_center_x = player_x + player_width // 2
@@ -1153,6 +1277,7 @@ def apply_explosion_force(explosion_x, explosion_y):
     if distance < explosion_radius:
         force_factor = (1.0 - (distance / explosion_radius)) ** 0.5
         force = explosion_force * force_factor * 2.5
+        achievements.update_selfhit(age)
         
         vel_x_add = dir_x * force
         vel_y_add = dir_y * force
@@ -1287,7 +1412,7 @@ game = [
     GameObject(x=8800, y=8145, width=400, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9350, y=8265, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9700, y=8305, width=250, height=50, texture_type='top', color=(255, 165, 0), end_y=8825, move_speed=2.6),
-    GameObject(obj_type='text', x=9300, y=9150, text='Gusts ahead: hold your line!', text_color=(255, 255, 0), text_size=44, text_align='center'),
+    GameObject(obj_type='text', x=9300, y=8850, text='Gusts ahead: throw against the wind!', text_color=(255, 255, 0), text_size=44, text_align='center'),
     GameObject(x=9300, y=8945, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9000, y=9020, width=200, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=8600, y=9020, width=250, height=50, texture_type='top', color=(144, 238, 144)),
@@ -1298,8 +1423,8 @@ game = [
     GameObject(x=9450, y=9510, width=150, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=9050, y=9630, width=250, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=8450, y=9750, width=400, height=50, texture_type='top', color=(144, 238, 144)),
-    GameObject(x=8320, y=9830, width=100, height=50, texture_type='top', color=(144, 238, 144)),
-    GameObject(x=8140, y=9910, width=100, height=50, texture_type='top', color=(144, 238, 144)),
+    GameObject(x=8320, y=9830, width=150, height=50, texture_type='top', color=(144, 238, 144)),
+    GameObject(x=8120, y=9910, width=150, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7900, y=9995, width=200, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7500, y=10115, width=300, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(x=7900, y=10215, width=200, height=50, texture_type='top', color=(144, 238, 144)),
@@ -1371,22 +1496,22 @@ game = [
     GameObject(x=8950, y=17485, width=250, height=50, texture_type='top', color=(144, 238, 144), end_y=18450, move_speed=2.6),
     GameObject(x=8150, y=18430, width=750, height=50, texture_type='top', color=(144, 238, 144)),
     GameObject(obj_type='text', x=100, y=300, text='Welcome to the game!', text_color=(255, 255, 0), text_size=60, text_align='center'),
-    GameObject(obj_type='text', x=100, y=200, text='Try clicking your left button of your mouse :)', text_color=(255, 255, 0), text_size=60, text_align='center'),
+    GameObject(obj_type='text', x=100, y=200, text='Try clicking your left mouse button :)', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=1500, y=300, text='If you see this', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=1500, y=200, text='Good job! You learned how to move horizontally', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=3500, y=300, text='Hmm...how can we get over this?', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=3500, y=200, text='Maybe try throwing candy so it hits yourself?', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=5000, y=300, text='Wow! you learned how to jump!', text_color=(255, 255, 0), text_size=60, text_align='center'),
-    GameObject(obj_type='text', x=5000, y=200, text='You were smarter that I thought!', text_color=(255, 255, 0), text_size=60, text_align='center'),
+    GameObject(obj_type='text', x=5000, y=200, text='You were smarter than I thought!', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=6000, y=300, text='You learned everything you can!', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=6000, y=200, text='Good luck :)', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=6000, y=100, text='That way --------->', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=10000, y=700, text="We are getting up aren't we?!", text_color=(255, 255, 0), text_size=60, text_align='center'),
-    GameObject(obj_type='text', x=11000, y=900, text='By the way forgot to tell you', text_color=(255, 255, 0), text_size=60, text_align='center'),
+    GameObject(obj_type='text', x=11000, y=900, text='By the way, I forgot to tell you', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=11000, y=800, text='You can actually control distance of the throw', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=11000, y=700, text='By keeping your mouse closer or further to the character :)', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=11000, y=150, text='<---------', text_color=(255, 255, 0), text_size=60, text_align='center'),
-    GameObject(obj_type='text', x=11000, y=100, text="Go to that way, you ain't supposed to be here :)", text_color=(255, 255, 0), text_size=60, text_align='center'),
+    GameObject(obj_type='text', x=11000, y=100, text="Go that way, you're not supposed to be here :)", text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=10300, y=1120, text='Left first. Then up.', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=9450, y=1120, text='This platform moves. Wait for it, then jump on.', text_color=(255, 255, 0), text_size=60, text_align='center'),
     GameObject(obj_type='text', x=7950, y=1220, text='Stand on it and it will carry you up.', text_color=(255, 255, 0), text_size=60, text_align='center'),
@@ -1501,13 +1626,27 @@ def draw_explosions(screen):
     for explosion in explosions:
         explosion.draw(screen)
 
+visited_platforms = set()
+
+
+def _platform_visited(platform):
+    """Count how many different platforms the player has stood on."""
+    if platform is None or platform.obj_type != "platform":
+        return
+    key = id(platform)
+    if key in visited_platforms:
+        return
+    visited_platforms.add(key)
+    achievements.update_platforms(len(visited_platforms))
+
+
 def update_player(keys, dt, mouse_pos):
     global player_x, player_y, player_velocity_x, player_velocity_y
     global player_is_on_ground, player_facing_right
     global player_ground_platform, level_cleared
     global player_last_ground_time, player_continuous_air_time, player_momentum
     global can_throw, mouse_button_down
-    global player_entry_time
+    global player_entry_time, idle_seconds
     
     if player_is_on_ground:
         player_last_ground_time = 0.0
@@ -1517,6 +1656,17 @@ def update_player(keys, dt, mouse_pos):
         player_last_ground_time += dt
         player_continuous_air_time += dt
         player_momentum = max(0.3, player_momentum - dt * 0.2)
+
+    # achievement counters
+    if not player_is_on_ground:
+        achievements.add_air_time(dt)
+        achievements.update_streak(player_continuous_air_time)
+        idle_seconds = 0.0
+    elif abs(player_velocity_x) < 0.5:
+        idle_seconds += dt
+        achievements.add_idle(dt)
+    else:
+        idle_seconds = 0.0
     
     mouse_pressed = pygame.mouse.get_pressed()[0]
     
@@ -1571,21 +1721,55 @@ def update_player(keys, dt, mouse_pos):
     
     player_velocity_x = max(-current_max_speed * 1.5, min(player_velocity_x, current_max_speed * 1.5))
 
-    # Wind zone: a periodic horizontal gust pushes the player sideways
+    # Wind zone: a periodic sideways sway. This is applied as a small
+    # displacement instead of being added to player_velocity_x: adding it to
+    # the velocity accumulates (sum of sine is 1 - cos >= 0) and slowly
+    # blows the player in one direction for ever.
     feet_now = ground_level - (player_y + player_height)
     if WIND_LO <= feet_now <= WIND_HI:
         gust = math.sin(pygame.time.get_ticks() / 1000.0 * (2.0 * math.pi / WIND_PERIOD))
-        player_velocity_x += gust * WIND_STRENGTH * dt * 60
+        grip = 0.35 if player_is_on_ground else 1.0
+        player_x += gust * WIND_STRENGTH * grip * dt * 60
 
-    player_x += player_velocity_x * dt * 60
     player_velocity_y += player_gravity * dt * 60
-    player_y += player_velocity_y * dt * 60
-    
+    if player_velocity_y > player_max_fall_speed:
+        player_velocity_y = player_max_fall_speed
+
+    step_x = player_velocity_x * dt * 60
+    step_y = player_velocity_y * dt * 60
+
+    # Falling fast can skip a platform inside a single frame (one AABB test per
+    # frame): stop at the first platform top the feet would cross this frame.
+    if step_y > 0:
+        feet = player_y + player_height
+        landing = None
+        for landing_obj in game:
+            if landing_obj.obj_type != 'platform':
+                continue
+            platform_top = landing_obj.y - landing_obj.height
+            if feet <= platform_top + 1 and feet + step_y >= platform_top:
+                if (landing_obj.x < player_x + player_width and
+                        landing_obj.x + landing_obj.width > player_x):
+                    if landing is None or platform_top < landing:
+                        landing = platform_top
+        if landing is not None:
+            # step one pixel into the platform so the regular collision test
+            # registers the landing (and marks the player as on the ground)
+            step_y = max(0.0, landing - feet) + 1.0
+            player_velocity_y = 0.0
+
+    player_x += step_x
+    player_y += step_y
+
     check_collisions(dt)
 
 def throw_candy(mouse_pos):
     achievements.add_candy()
     global player_velocity_x, candies, held_candy_state
+    global player_facing_right, idle_seconds
+    idle_seconds = 0.0
+    if not player_is_on_ground:
+        achievements.add_air_throw()
     
     mouse_world_x = mouse_pos[0] + camera_x
     mouse_world_y = mouse_pos[1] + camera_y
@@ -1751,17 +1935,18 @@ def draw_aim_preview(screen, mouse_pos, is_ready=True):
         dot.set_alpha(alpha)
         screen.blit(dot, (screen_x - radius, screen_y - radius))
 
-    # impact marker where the candy would land
+    # impact marker where the candy would land (a single ring, not two dots)
     last_x, last_y = points[-1]
     if _aim_hits(last_x, last_y, candy_radius) and camera_x is not None:
         impact = (int(last_x - camera_x), int(last_y - camera_y))
         if -30 <= impact[0] <= WIDTH + 30 and -30 <= impact[1] <= HEIGHT + 30:
-            ring = _aim_dot(12, (255, 196, 120))
-            ring.set_alpha(120)
-            screen.blit(ring, (impact[0] - 12, impact[1] - 12))
-            ring2 = _aim_dot(12, (12, 16, 36))
-            ring2.set_alpha(90)
-            screen.blit(ring2, (impact[0] - 6, impact[1] - 6))
+            ring_size = 26
+            ring = pygame.Surface((ring_size, ring_size), pygame.SRCALPHA)
+            pygame.draw.circle(ring, (255, 205, 130),
+                               (ring_size // 2, ring_size // 2), 10, 3)
+            ring.set_alpha(170)
+            screen.blit(ring, (impact[0] - ring_size // 2,
+                               impact[1] - ring_size // 2))
 
 
 # Wind streaks: short fast snow lines that show the direction of the gust
@@ -1829,6 +2014,7 @@ def check_collisions(dt):
                 player_is_on_ground = True
                 
                 player_ground_platform = obj
+                _platform_visited(obj)
             
             elif collision_type == "side":
                 player_x = new_x
@@ -2169,20 +2355,330 @@ def draw_game_objects_with_textures(screen):
         if obj.obj_type == 'text':
             obj.draw(screen)
 
-MENU_KEYS = ("continue", "new_game", "saves", "achievements", "settings", "exit")
+MENU_KEYS = ("continue", "new_game", "tutorial", "saves", "achievements",
+             "settings", "exit")
 
 
 def menu_buttons():
-    bw, bh = 330, 56
+    bw, bh = 330, 52
     x = WIDTH // 2 - bw // 2
-    y0 = HEIGHT // 2 - 135
-    return [(key, pygame.Rect(x, y0 + i * 66, bw, bh)) for i, key in enumerate(MENU_KEYS)]
+    y0 = HEIGHT // 2 - 155
+    return [(key, pygame.Rect(x, y0 + i * 62, bw, bh)) for i, key in enumerate(MENU_KEYS)]
 
 
 def draw_menu():
-    title_text = big_font.render("A SLIPERY CLIMB", True, WHITE)
+    # localised game title; long translations shrink until they fit
+    title = i18n.ui("game_title")
+    title_text = None
+    for size in (120, 104, 92, 80, 70, 60):
+        font_obj = i18n.get_font(max(10, int(size * i18n.scale())))
+        rendered = font_obj.render(title, True, WHITE)
+        if rendered.get_width() <= WIDTH - 80:
+            title_text = rendered
+            break
+    if title_text is None:
+        font_obj = i18n.get_font(max(10, int(60 * i18n.scale())))
+        title_text = font_obj.render(title, True, WHITE)
+        scale = (WIDTH - 80) / title_text.get_width()
+        title_text = pygame.transform.smoothscale(
+            title_text, (int(title_text.get_width() * scale),
+                         int(title_text.get_height() * scale)))
     screen.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 5)))
     return menu_buttons()
+
+
+# ========== Tutorial screen ==========
+tutorial_page = 0
+TUTORIAL_PAGES = [('aim.png', 'Aim and throw', 'Hold the left mouse button to aim. The dotted line shows where the candy flies and where it will land.'), ('force.png', 'Throw strength', 'The bar under the character shows how strong this throw is. Aiming further away throws harder.'), ('move.png', 'Move with recoil', 'There is no walk key. Throw backwards to slide forward, and throw at your feet to jump.'), ('progress.png', 'Climb progress', 'The Santa on the left edge shows how high you have climbed.'), ('cursor.png', 'Find the pointer', 'There is no pointer while playing. Hold Alt to show the cursor again.')]
+_tutorial_images = {}
+
+
+def _tutorial_image(name):
+    surf = _tutorial_images.get(name)
+    if surf is None:
+        try:
+            surf = pygame.image.load(paths.asset("tutorial", name)).convert()
+        except Exception:
+            surf = None
+        _tutorial_images[name] = surf
+    return surf
+
+
+def tutorial_buttons():
+    bw, bh = 150, 50
+    y = HEIGHT - 86
+    gap = 18
+    total = bw * 3 + gap * 2
+    x0 = WIDTH // 2 - total // 2
+    return [("prev", pygame.Rect(x0, y, bw, bh)),
+            ("next", pygame.Rect(x0 + bw + gap, y, bw, bh)),
+            ("back", pygame.Rect(x0 + 2 * (bw + gap), y, bw, bh))]
+
+
+def draw_tutorial(screen, mouse_pos):
+    head = font.render(i18n.ui("tutorial"), True, WHITE)
+    screen.blit(head, head.get_rect(center=(WIDTH // 2, 44)))
+
+    page = tutorial_page % len(TUTORIAL_PAGES)
+    image_name, title_en, body_en = TUTORIAL_PAGES[page]
+
+    img = _tutorial_image(image_name)
+    if img is not None:
+        max_w = min(700, WIDTH - 180)
+        scale = max_w / img.get_width()
+        size = (int(img.get_width() * scale), int(img.get_height() * scale))
+        scaled = pygame.transform.smoothscale(img, size)
+        rect = scaled.get_rect(center=(WIDTH // 2, 84 + size[1] // 2))
+        pygame.draw.rect(screen, BLACK, rect.inflate(8, 8), 2, border_radius=8)
+        screen.blit(scaled, rect)
+
+    title = font.render(i18n.text(title_en), True, (255, 214, 120))
+    screen.blit(title, title.get_rect(center=(WIDTH // 2, HEIGHT - 238)))
+
+    body_font = i18n.get_font(max(10, int(23 * i18n.scale())))
+    words = i18n.text(body_en).split()
+    lines, line = [], ""
+    max_width = int(WIDTH * 0.72)
+    for word in words:
+        attempt = (line + " " + word).strip()
+        if body_font.render(attempt, True, WHITE).get_width() > max_width and line:
+            lines.append(line)
+            line = word
+        else:
+            line = attempt
+    if line:
+        lines.append(line)
+    y = HEIGHT - 204
+    for text_line in lines[:4]:
+        surf = body_font.render(text_line, True, (222, 230, 250))
+        screen.blit(surf, surf.get_rect(center=(WIDTH // 2, y)))
+        y += body_font.get_height() + 3
+
+    counter = body_font.render("%d / %d" % (page + 1, len(TUTORIAL_PAGES)),
+                               True, (188, 198, 228))
+    screen.blit(counter, counter.get_rect(center=(WIDTH // 2, HEIGHT - 122)))
+
+    for key, rect in tutorial_buttons():
+        hot = rect.collidepoint(mouse_pos)
+        color = WHITE if hot else LIGHT_BLUE
+        if (key == "prev" and page == 0) or (key == "next" and page == len(TUTORIAL_PAGES) - 1):
+            color = GRAY
+        pygame.draw.rect(screen, color, rect)
+        pygame.draw.rect(screen, BLACK, rect, 2)
+        label = {"prev": "<", "next": ">", "back": i18n.ui("back")}[key]
+        surf = font.render(label, True, BLACK)
+        screen.blit(surf, surf.get_rect(center=rect.center))
+
+    draw_custom_cursor(screen, mouse_pos, True)
+
+
+# ========== Achievements screen (one page per rank + hidden page) ==========
+ach_page = 0
+ACH_TAB_W = 130
+ACH_TAB_H = 44
+_icon_cache = {}
+
+
+def ach_tab_rects():
+    """Rank tabs (0-4) plus the hidden tab (5)."""
+    total = 6
+    gap = 8
+    total_w = total * ACH_TAB_W + (total - 1) * gap
+    x0 = WIDTH // 2 - total_w // 2
+    y = 96
+    rects = []
+    for i in range(total):
+        rects.append(pygame.Rect(x0 + i * (ACH_TAB_W + gap), y, ACH_TAB_W, ACH_TAB_H))
+    return rects
+
+
+def _draw_icon(kind, rank_index, size=54, dim=False, base=None):
+    """Small procedural icon for one achievement, on a rank-coloured badge."""
+    key = (kind, rank_index, size, dim, base)
+    cached = _icon_cache.get(key)
+    if cached is not None:
+        return cached
+    surf = pygame.Surface((size, size), pygame.SRCALPHA)
+    if base is None:
+        base = achievements.RANK_COLORS[min(rank_index, 4)]
+    if dim:
+        base = tuple(int(c * 0.35) for c in base)
+    pygame.draw.circle(surf, base, (size // 2, size // 2), size // 2)
+    pygame.draw.circle(surf, (255, 255, 255, 60), (size // 2, size // 2), size // 2, 2)
+    fg = (255, 255, 255) if not dim else (120, 126, 140)
+    cx, cy, r = size // 2, size // 2, size // 3
+    if kind == "height":
+        pygame.draw.polygon(surf, fg, [(cx - r, cy + r), (cx, cy - r),
+                                       (cx + r, cy + r)])
+        pygame.draw.polygon(surf, (255, 255, 255) if not dim else (150, 155, 170),
+                            [(cx - r // 3, cy + 1), (cx, cy - r),
+                             (cx + r // 3, cy + 1)])
+    elif kind == "clears":
+        pygame.draw.line(surf, fg, (cx - r + 2, cy - r), (cx - r + 2, cy + r), 3)
+        pygame.draw.polygon(surf, fg, [(cx - r + 2, cy - r), (cx + r, cy - r // 2),
+                                       (cx - r + 2, cy)])
+    elif kind == "candy":
+        pygame.draw.circle(surf, fg, (cx, cy), r)
+        pygame.draw.circle(surf, (0, 0, 0, 60), (cx - 3, cy - 3), r // 3, 2)
+    elif kind == "air":
+        for k in range(2):
+            h = 6 + k * 8
+            pygame.draw.polygon(surf, fg, [(cx - 10, cy + r - h),
+                                           (cx, cy + r - h - 10),
+                                           (cx + 10, cy + r - h)], 0)
+    elif kind == "platforms":
+        for k in range(3):
+            pygame.draw.rect(surf, fg,
+                             (cx - r + k * (r // 2), cy + r - 4 - k * (r // 2),
+                              r // 2 + 3, 5))
+    elif kind == "chain":
+        pygame.draw.circle(surf, fg, (cx - r // 2, cy + r // 2), r // 3)
+        pygame.draw.circle(surf, fg, (cx + r // 2, cy - r // 2), r // 3)
+        pygame.draw.line(surf, fg, (cx - r // 3, cy + r // 3),
+                         (cx + r // 3, cy - r // 3), 3)
+    elif kind == "sky":
+        pygame.draw.circle(surf, fg, (cx, cy), r, 3)
+        pygame.draw.line(surf, fg, (cx, cy), (cx, cy - r // 2), 2)
+        pygame.draw.line(surf, fg, (cx, cy), (cx + r // 2, cy + 3), 2)
+    elif kind == "statue":
+        pygame.draw.rect(surf, fg, (cx - 8, cy - r, 16, 2 * r - 6))
+        pygame.draw.rect(surf, fg, (cx - r, cy + r - 6, 2 * r, 5))
+    elif kind == "fails":
+        for k in range(3):
+            y0 = cy - r + k * (r // 2) + 2
+            pygame.draw.lines(surf, fg, False,
+                              [(cx - r // 3, y0),
+                               (cx, y0 + r // 4),
+                               (cx + r // 3, y0)], 3)
+    elif kind == "selfhit":
+        pygame.draw.arc(surf, fg, (cx - r, cy - r, 2 * r, 2 * r),
+                        0.4, 5.6, 3)
+        pygame.draw.polygon(surf, fg, [(cx + r - 3, cy - 2),
+                                       (cx + r + 5, cy - 4),
+                                       (cx + r + 3, cy + 5)])
+        pygame.draw.circle(surf, fg, (cx, cy + r // 3), 3)
+    else:  # streak
+        pygame.draw.polygon(surf, fg, [(cx, cy + r), (cx - r + 2, cy),
+                                       (cx - 4, cy - r), (cx + 4, cy - 2),
+                                       (cx + r - 2, cy + r)])
+        pygame.draw.polygon(surf, (255, 255, 255) if not dim else (150, 155, 170),
+                            [(cx, cy + r - 2), (cx - 4, cy + 3), (cx + 4, cy + 1)])
+    _icon_cache[key] = surf
+    return surf
+
+
+def _draw_check(screen, x, y, size=14, color=(120, 230, 150)):
+    """Small tick mark drawn with lines (the font may lack the glyph)."""
+    pygame.draw.lines(screen, color, False,
+                      [(x, y + size * 0.55),
+                       (x + size * 0.38, y + size * 0.95),
+                       (x + size, y + size * 0.1)], 3)
+
+
+def draw_achievements(screen, mouse_pos):
+    tabs = ach_tab_rects()
+    for i, rect in enumerate(tabs):
+        active = (i == ach_page)
+        hot = rect.collidepoint(mouse_pos)
+        if i < 5:
+            color = achievements.RANK_COLORS[i]
+        else:
+            color = (205, 65, 65)   # hidden tab is red
+        if active:
+            fill = color
+        else:
+            fill = tuple(int(c * 0.35) for c in color)
+        pygame.draw.rect(screen, fill, rect, border_radius=8)
+        pygame.draw.rect(screen, WHITE if active else (150, 150, 170), rect,
+                         2, border_radius=8)
+        label = i18n.ui("hidden") if i == 5 else achievements.rank_name(i + 1, i18n.current)
+        if active:
+            label_color = BLACK if i < 5 else WHITE
+        else:
+            label_color = (225, 228, 240)
+        surf = small_font.render(label, True, label_color)
+        screen.blit(surf, surf.get_rect(center=rect.center))
+
+    rows = achievements.get_list(i18n.current)
+    if ach_page < 5:
+        kinds = achievements.NORMAL_ORDER
+        rank_index = ach_page
+    else:
+        kinds = achievements.HIDDEN_ORDER
+        rank_index = 0
+
+    cols, rows_n = 2, 3
+    cell_w, cell_h = 430, 132
+    grid_w = cols * cell_w + 24
+    x0 = WIDTH // 2 - grid_w // 2
+    y0 = 168
+    for idx, kind in enumerate(kinds):
+        col = idx % cols
+        row = idx // cols
+        cx = x0 + col * (cell_w + 24)
+        cy = y0 + row * cell_h
+        lvl = achievements.level(kind)
+        hidden_locked = achievements.is_hidden(kind) and lvl == 0
+        # on rank pages an achievement is "bright" only when that rank is reached
+        if ach_page < 5:
+            bright = lvl >= rank_index + 1
+            badge_rank = rank_index
+        else:
+            bright = lvl > 0
+            badge_rank = max(0, lvl - 1)
+
+        if ach_page == 5:
+            icon = _draw_icon(kind, badge_rank, 54, dim=not bright,
+                              base=(205, 65, 65))
+        else:
+            icon = _draw_icon(kind, badge_rank, 54, dim=not bright)
+        screen.blit(icon, (cx, cy))
+
+        name = i18n.ui("hidden") if False else achievements.achievement_name(kind, i18n.current)
+        if hidden_locked:
+            name = "???"
+        name_col = (255, 226, 130) if bright else (130, 132, 150)
+        name_surf = font.render(name, True, name_col)
+        screen.blit(name_surf, (cx + 68, cy + 2))
+
+        if hidden_locked:
+            req_line = "???"
+        elif ach_page < 5:
+            req_line = achievements.req_text(kind, rank_index, i18n.current)
+        else:
+            req_line = achievements.req_text(kind, 0, i18n.current)
+        if ach_page < 5:
+            lvl_line = "Lv.%d/5" % lvl
+        elif hidden_locked:
+            lvl_line = ""
+        else:
+            lvl_line = i18n.ui("completed")
+        req_col = (215, 222, 240) if bright else (120, 124, 138)
+        req_surf = small_font.render(req_line, True, req_col)
+        screen.blit(req_surf, (cx + 68, cy + 40))
+        lvl_surf = small_font.render(lvl_line, True,
+                                     (255, 226, 130) if bright else (110, 115, 130))
+        screen.blit(lvl_surf, (cx + 68, cy + 70))
+
+        if ach_page < 5 and bright:
+            _draw_check(screen, cx + 68, cy + 94)
+        elif ach_page == 5 and not hidden_locked:
+            _draw_check(screen, cx + 68, cy + 94)
+            prog = achievements.progress_text(kind, i18n.current)
+            prog_surf = small_font.render(prog, True, (120, 124, 138))
+            screen.blit(prog_surf, (cx + 96, cy + 96))
+        elif not hidden_locked:
+            prog = achievements.progress_text(kind, i18n.current)
+            prog_surf = small_font.render(prog, True, (120, 124, 138))
+            screen.blit(prog_surf, (cx, cy + 96))
+
+    back = saves_back_rect()
+    hovered = back.collidepoint(mouse_pos)
+    pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back)
+    pygame.draw.rect(screen, BLACK, back, 2)
+    surf = font.render(i18n.ui("back"), True, BLACK)
+    screen.blit(surf, surf.get_rect(center=back.center))
+    draw_custom_cursor(screen, mouse_pos, True)
 
 
 def saves_slot_rects():
@@ -2207,6 +2703,18 @@ def any_empty_slot():
     return first_empty_slot() is not None
 
 
+pending_delete_slot = None
+
+
+def delete_dialog_rects():
+    """Confirm / cancel buttons of the delete-save dialog."""
+    bw, bh = 240, 60
+    y = HEIGHT // 2 + 70
+    yes = pygame.Rect(WIDTH // 2 - bw - 14, y, bw, bh)
+    no = pygame.Rect(WIDTH // 2 + 14, y, bw, bh)
+    return yes, no
+
+
 def saves_back_rect():
     bw, bh = 260, 56
     return pygame.Rect(WIDTH // 2 - bw // 2, HEIGHT - 120, bw, bh)
@@ -2219,17 +2727,44 @@ def victory_button_rect():
 
 def load_slot_into_game(slot):
     global current_slot, player_x, player_y, camera_x, camera_y
+    global player_velocity_x, player_velocity_y, player_is_on_ground
+    global player_ground_platform, level_cleared, summit_locked
+    global summit_msg_timer, summit_msg_shown
     current_slot = slot
-    data = SaveManager.load_slot(slot)
-    if data:
-        player_x = data.get("player_x", 100)
-        player_y = data.get("player_y", ground_level - player_height)
-        camera_x = player_x - WIDTH // 2
-        camera_y = player_y - HEIGHT // 2
-    else:
+    data = SaveManager.load_slot(slot) if slot is not None else None
+    if not _valid_save_data(data):
+        # unreadable save: behave like an empty slot instead of crashing
+        current_slot = None
         reset_game()
+        return False
+    player_x = float(data["player_x"])
+    player_y = float(data["player_y"])
+    camera_x = player_x - WIDTH // 2
+    camera_y = player_y - HEIGHT // 2
+    # a loaded save always starts a clean run, but keeps the momentum
+    # the player had when exiting (coordinates alone made the character
+    # "freeze" mid-air after loading)
+    player_velocity_x = _save_velocity(data.get("velocity_x", 0.0))
+    player_velocity_y = _save_velocity(data.get("velocity_y", 0.0))
+    player_is_on_ground = False
+    player_ground_platform = None
+    level_cleared = False
+    summit_locked = False
+    summit_msg_timer = 0.0
+    summit_msg_shown = False
+    candies.clear()
+    explosions.clear()
+    toasts.clear()
+    visited_platforms.clear()
+    reset_run_tips()
+    return True
 
 def reset_game():
+    visited_platforms.clear()
+    reset_run_tips()
+    reset_summit_music()
+    global run_peak_height
+    run_peak_height = 0.0
     """Reset the game."""
     global player_x, player_y, player_velocity_x, player_velocity_y
     global player_is_on_ground, player_facing_right
@@ -2269,6 +2804,40 @@ def reset_game():
     toasts.clear()
     flavor.reset_tutorials()  # FLAVOR
 
+def _atomic_write_json(path, data):
+    """Write JSON to a temp file first so a crash cannot truncate the save."""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as handle:
+        json.dump(data, handle)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def _save_velocity(value):
+    """Velocity stored in a save file, clamped to sane values."""
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if not math.isfinite(value):
+        return 0.0
+    return max(-PLAYER_SAVE_MAX_SPEED, min(PLAYER_SAVE_MAX_SPEED, value))
+
+
+def _valid_save_data(data):
+    """A save is usable only when player_x / player_y are real numbers."""
+    if not isinstance(data, dict):
+        return False
+    for key in ("player_x", "player_y"):
+        value = data.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return False
+        if value != value or value in (float("inf"), float("-inf")):
+            return False
+    return True
+
+
 class SaveManager:
     SLOT_COUNT = 5
 
@@ -2281,14 +2850,14 @@ class SaveManager:
         return os.path.exists(SaveManager.slot_file(slot))
 
     @staticmethod
-    def save_slot(slot, player_x, player_y):
+    def save_slot(slot, player_x, player_y, velocity_x=0.0, velocity_y=0.0):
         data = {"player_x": player_x, "player_y": player_y,
+                "velocity_x": float(velocity_x), "velocity_y": float(velocity_y),
                 "height": int(round(ground_level - (player_y + player_height))),
                 "cleared": bool(level_cleared), "clears": achievements.clears(),
                 "time": time.time()}
         try:
-            with open(SaveManager.slot_file(slot), "w") as f:
-                json.dump(data, f)
+            _atomic_write_json(SaveManager.slot_file(slot), data)
             return True
         except Exception:
             return False
@@ -2298,8 +2867,9 @@ class SaveManager:
         try:
             path = SaveManager.slot_file(slot)
             if os.path.exists(path):
-                with open(path, "r") as f:
-                    return json.load(f)
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                return data if _valid_save_data(data) else None
         except Exception:
             pass
         return None
@@ -2316,8 +2886,7 @@ class SaveManager:
 
     @staticmethod
     def save_exists():
-        return any(SaveManager.slot_exists(i)
-                   for i in range(1, SaveManager.SLOT_COUNT + 1))
+        return SaveManager.latest_slot() is not None
 
     @staticmethod
     def latest_slot():
@@ -2335,8 +2904,7 @@ class SaveManager:
         settings_data = {"sound_volume": sound_vol, "music_volume": music_vol,
                          "language": i18n.current}
         try:
-            with open(SETTINGS_FILE, 'w') as f:
-                json.dump(settings_data, f)
+            _atomic_write_json(SETTINGS_FILE, settings_data)
             return True
         except:
             return False
@@ -2359,6 +2927,7 @@ if settings:
     sound_manager.set_music_volume(music_volume)
 
 i18n.set_lang(settings.get("language", "en") if settings else "en")
+pygame.display.set_caption(i18n.ui("game_title"))
 rebuild_fonts()
 refresh_texts()
 
@@ -2801,7 +3370,7 @@ def draw_summit_hint(screen):
     if not anchored:
         return
     to_left = house_rect.centerx < player_x
-    hint = i18n.text("Gifts first: walk to the cabin!")
+    hint = i18n.text("Gifts first: throw candy and slide over to the cabin!")
     surf = font.render(hint, True, (255, 228, 140))
     arrow_font = i18n.get_font(max(10, int(64 * i18n.scale())))
     arrow = arrow_font.render("<---------" if to_left else "--------->",
@@ -2830,6 +3399,7 @@ def draw_victory(screen):
     pygame.draw.rect(screen, BLACK, btn, 2)
     surface = font.render(i18n.ui("return"), True, BLACK)
     screen.blit(surface, surface.get_rect(center=btn.center))
+    draw_custom_cursor(screen, pygame.mouse.get_pos(), True)
 
 
 def draw_summit_msg(screen):
@@ -2897,6 +3467,176 @@ def draw_toasts(screen):
         box.set_alpha(alpha)
         rect = box.get_rect(center=(WIDTH // 2, 58 + index * 82 - slide))
         screen.blit(box, rect)
+
+
+FALL_TIP_DURATION = 5.0
+FALL_TIP_DROP = 250.0        # px drop that counts as "falling"
+FALL_TIP_SPOT = 500.0        # height buckets, so "the same spot" is the same place
+FALL_TIP_COUNT = 3           # this many falls at a spot arms the tip
+
+fall_max_feet = 0.0
+fall_counts = {}
+fall_tip_armed = set()
+fall_tip_fired = set()   # spots that already showed the tip
+fall_tip_text = ""
+fall_tip_life = 0.0
+
+
+def update_fall_tips(dt):
+    """Count falls per height band; arm a short tip when a spot keeps beating you."""
+    global fall_max_feet, fall_tip_text, fall_tip_life
+    if fall_tip_life > 0:
+        fall_tip_life = max(0.0, fall_tip_life - dt)
+    if level_cleared:
+        return
+    feet = ground_level - (player_y + player_height)
+    if feet > fall_max_feet:
+        fall_max_feet = feet
+    # a real fall: landed well below the best height reached so far
+    if player_is_on_ground and fall_max_feet - feet >= FALL_TIP_DROP:
+        spot = int(fall_max_feet // FALL_TIP_SPOT) * FALL_TIP_SPOT
+        count = fall_counts.get(spot, 0) + 1
+        fall_counts[spot] = count
+        if count >= FALL_TIP_COUNT and spot not in fall_tip_fired:
+            fall_tip_armed.add(spot)
+            fall_tip_fired.add(spot)
+        achievements.update_fails(count)
+        fall_max_feet = feet
+    # back up at the spot where this player kept falling: show the tip for 5 s
+    for spot in list(fall_tip_armed):
+        if feet >= spot:
+            fall_tip_armed.discard(spot)
+            fall_tip_text = "This spot keeps beating you. Brake before the jump, then leap."
+            fall_tip_life = FALL_TIP_DURATION
+            break
+
+
+def draw_fall_tip(screen):
+    if fall_tip_life <= 0 or not fall_tip_text or not TEXTURES_LOADED or level_cleared:
+        return
+    font_obj = i18n.get_font(max(10, int(24 * i18n.scale())))
+    rendered = font_obj.render(i18n.ui("fall_tip"), True, (255, 226, 170))
+    width = rendered.get_width() + 40
+    height = rendered.get_height() + 18
+    box = pygame.Surface((width, height), pygame.SRCALPHA)
+    alpha = int(255 * min(1.0, fall_tip_life / 0.4))
+    pygame.draw.rect(box, (48, 20, 20, int(alpha * 0.85)), box.get_rect(),
+                     border_radius=10)
+    pygame.draw.rect(box, (240, 120, 90, int(alpha * 0.8)), box.get_rect(), 2,
+                     border_radius=10)
+    rendered.set_alpha(alpha)
+    box.blit(rendered, (20, 9))
+    screen.blit(box, box.get_rect(center=(WIDTH // 2, int(HEIGHT * 0.42))))
+
+
+def reset_run_tips():
+    """Forget the fall counters and hide the fall tip."""
+    global fall_max_feet, fall_tip_text, fall_tip_life
+    fall_max_feet = 0.0
+    fall_counts.clear()
+    fall_tip_armed.clear()
+    fall_tip_fired.clear()
+    fall_tip_text = ""
+    fall_tip_life = 0.0
+
+
+def draw_force_meter(screen, mouse_pos, is_ready=True):
+    """Small bar next to the cursor showing the current throw strength."""
+    if not is_ready or level_cleared:
+        return
+    center_x = player_x + player_width // 2
+    center_y = player_y + player_height // 2
+    dx = (mouse_pos[0] + camera_x) - center_x
+    dy = (mouse_pos[1] + camera_y) - center_y
+    ratio = max(0.0, min(1.0, math.hypot(dx, dy) / MAX_THROW_DISTANCE))
+    bar_w, bar_h = 92, 8
+    # drawn under the character (there is no mouse pointer any more)
+    bar_x = int(player_x - camera_x + player_width // 2 - bar_w // 2)
+    bar_y = int(player_y - camera_y + player_height + 14)
+    pygame.draw.rect(screen, (12, 16, 36),
+                     (bar_x - 2, bar_y - 2, bar_w + 4, bar_h + 4), border_radius=4)
+    if ratio < 0.5:
+        color = (90, 220, 120)
+    elif ratio < 0.85:
+        color = (240, 210, 90)
+    else:
+        color = (240, 110, 90)
+    pygame.draw.rect(screen, color, (bar_x, bar_y, int(bar_w * ratio), bar_h),
+                     border_radius=3)
+
+
+# ========== Climb progress bar (left edge, Santa marker) ==========
+_progress_marker = {}
+
+
+def _progress_marker_surfaces():
+    """Small player sprite + hat used as the marker on the progress bar."""
+    cached = _progress_marker.get("surfaces")
+    if cached is not None:
+        return cached
+    body = None
+    hat = None
+    try:
+        if player_textures.idle_textures:
+            body = pygame.transform.smoothscale(player_textures.idle_textures[0],
+                                                (34, 34))
+        if player_textures.hat_texture is not None:
+            hat = pygame.transform.smoothscale(player_textures.hat_texture, (34, 24))
+    except Exception:
+        body = None
+        hat = None
+    _progress_marker["surfaces"] = (body, hat)
+    return body, hat
+
+
+def draw_progress_bar(screen):
+    """Vertical bar on the left: how high the player has climbed."""
+    feet = ground_level - (player_y + player_height)
+    ratio = max(0.0, min(1.0, feet / MAX_CLIMB_HEIGHT))
+
+    bar_x = 24
+    bar_top = 108
+    bar_bottom = HEIGHT - 150
+    bar_h = bar_bottom - bar_top
+    if bar_h <= 40:
+        return
+
+    # track
+    pygame.draw.rect(screen, (18, 22, 46), (bar_x, bar_top, 14, bar_h), border_radius=7)
+    pygame.draw.rect(screen, (70, 84, 130), (bar_x, bar_top, 14, bar_h), 1, border_radius=7)
+
+    # filled part
+    fill_top = bar_bottom - int(bar_h * ratio)
+    pygame.draw.rect(screen, (255, 214, 120), (bar_x + 2, fill_top, 10, bar_bottom - fill_top),
+                     border_radius=5)
+
+    # ticks every 10 %
+    for step in range(1, 10):
+        ty = bar_bottom - int(bar_h * (step / 10.0))
+        pygame.draw.line(screen, (90, 104, 150), (bar_x + 16, ty), (bar_x + 22, ty), 1)
+
+    # marker: the game character itself
+    body, hat = _progress_marker_surfaces()
+    marker_y = bar_bottom - int(bar_h * ratio)
+    marker_x = bar_x + 7
+    if body is not None:
+        screen.blit(body, (marker_x - 17, marker_y - 17))
+    else:
+        pygame.draw.circle(screen, (255, 240, 200), (marker_x, marker_y), 6)
+    if hat is not None:
+        screen.blit(hat, (marker_x - 17, marker_y - 34))
+
+    # current height label next to the marker
+    label_font = i18n.get_font(max(10, int(20 * i18n.scale())))
+    meters = int(feet / 100)
+    label = "%d m" % meters
+    text = label_font.render(label, True, (255, 240, 200))
+    label_x = bar_x + 30
+    label_y = max(bar_top, min(bar_bottom - text.get_height(), marker_y - text.get_height() // 2))
+    box = pygame.Surface((text.get_width() + 10, text.get_height() + 4), pygame.SRCALPHA)
+    pygame.draw.rect(box, (14, 18, 40, 190), box.get_rect(), border_radius=6)
+    box.blit(text, (5, 2))
+    screen.blit(box, (label_x, label_y))
 
 
 def draw_chatter(screen):
@@ -3019,49 +3759,93 @@ def draw_cutscene(screen):
         _cut_santa(screen, sx, sy, 1.7, t)
     else:
         cx, cy = WIDTH // 2, int(HEIGHT * 0.62)
+        # snow keeps falling over the whole scene
+        for k in range(46):
+            fx = (k * 137 + math.sin(t * 0.8 + k) * 40) % WIDTH
+            fy = (k * 83 + t * (28 + (k % 7) * 9)) % HEIGHT
+            pygame.draw.circle(screen, (222, 230, 248),
+                               (int(fx), int(fy)), 2 if k % 3 else 3)
+        # cabin
         pygame.draw.rect(screen, (120, 82, 52), (cx - 70, cy - 40, 140, 90))
         pygame.draw.polygon(screen, (200, 60, 60),
                             [(cx - 90, cy - 40), (cx, cy - 104), (cx + 90, cy - 40)])
         pygame.draw.rect(screen, (255, 226, 140), (cx - 20, cy - 20, 40, 40))
-        _cut_santa(screen, cx + 120, cy + 44, 1.7, t)
+        # santa slowly walks up to the cabin and stops next to it
+        walk = min(1.0, t / 7.0)
+        sx = cx + 200 - 120 * walk
+        sy = cy + 44 - 6 * math.sin(t * 4) * walk
+        _cut_santa(screen, sx, sy, 1.7, t)
+        # presents arrive one by one
         gifts = [((cx - 150, cy + 34), (60, 180, 120)), ((cx - 190, cy + 24), (200, 70, 70)),
                  ((cx - 110, cy + 44), (80, 120, 220))]
-        for i, ((gx, gy), col) in enumerate(gifts):
-            if t > 1.2 + i * 0.8:
+        for gi, ((gx, gy), col) in enumerate(gifts):
+            if t > 2.0 + gi * 1.2:
                 pygame.draw.rect(screen, col, (gx, gy, 36, 30))
                 pygame.draw.rect(screen, (240, 220, 120), (gx + 14, gy, 8, 30))
+        # floating warm lights around the peak
         for k in range(18):
-            ang = k * 0.7 + t * 1.2
-            rr = 120 + 60 * math.sin(t * 2 + k)
+            ang = k * 0.7 + t * 0.5
+            rr = 120 + 60 * math.sin(t * 1.2 + k)
             px = WIDTH // 2 + math.cos(ang) * rr * 1.7
             py = HEIGHT * 0.30 + math.sin(ang) * rr * 0.7
-            c = (255, int(180 + 60 * math.sin(t * 3 + k)), 120)
+            c = (255, int(180 + 60 * math.sin(t * 2 + k)), 120)
             pygame.draw.circle(screen, c, (int(px), int(py)), 3)
-    keys = (("intro_line1", "intro_line2", "intro_line3") if intro
-            else ("win_line1", "win_line2", "win_line3"))
-    for i, key in enumerate(keys):
-        start = 0.5 + i * 1.5
+        # fireworks, one burst every few seconds
+        for burst_index, burst_t in enumerate((7.5, 10.0, 12.5, 15.0, 17.2)):
+            age = t - burst_t
+            if age < 0 or age > 1.6:
+                continue
+            bx = WIDTH * (0.20 + 0.16 * burst_index)
+            by = HEIGHT * (0.18 + 0.09 * ((burst_index * 3) % 4))
+            radius = int(10 + age * 120)
+            alpha = int(255 * (1.0 - age / 1.6))
+            ring = pygame.Surface((radius * 2 + 6, radius * 2 + 6), pygame.SRCALPHA)
+            pygame.draw.circle(ring, (255, 210, 120, alpha),
+                               (radius + 3, radius + 3), radius, 3)
+            screen.blit(ring, (bx - radius - 3, by - radius - 3))
+            for s_i in range(12):
+                sang = s_i * 0.52 + burst_index
+                px = bx + math.cos(sang) * radius
+                py = by + math.sin(sang) * radius
+                pygame.draw.circle(screen, (255, 240, 180), (int(px), int(py)), 2)
+        # climb recap
+        if t >= 8.0:
+            recap_alpha = min(1.0, (t - 8.0) / 1.2)
+            recap = i18n.ui("win_recap").format(m=int(run_peak_height // 100))
+            recap_surf = font.render(recap, True, (255, 226, 140))
+            recap_surf.set_alpha(int(255 * recap_alpha))
+            screen.blit(recap_surf, recap_surf.get_rect(
+                center=(WIDTH // 2, int(HEIGHT * 0.83))))
+    if intro:
+        line_plan = [("intro_line1", 0.5), ("intro_line2", 2.0), ("intro_line3", 3.5)]
+    else:
+        line_plan = [("win_line1", 1.0), ("win_line2", 3.6), ("win_line3", 6.2),
+                     ("win_line4", 9.2), ("win_line5", 11.8)]
+    for i, (key, start) in enumerate(line_plan):
         if t < start:
             continue
         alpha = min(1.0, (t - start) / 0.7)
-        if cutscene_len - t < 0.7:
-            alpha *= max(0.0, (cutscene_len - t) / 0.7)
+        if cutscene_len - t < 1.0:
+            alpha *= max(0.0, (cutscene_len - t) / 1.0)
         surf = font.render(i18n.ui(key), True, (255, 255, 255))
         surf.set_alpha(int(255 * alpha))
         screen.blit(surf, surf.get_rect(
-            center=(WIDTH // 2, int(HEIGHT * 0.12) + i * int(60 * i18n.scale()))))
-    # Skip button (top right)
-    btn = cutscene_skip_rect()
-    hover = btn.collidepoint(pygame.mouse.get_pos())
-    pygame.draw.rect(screen, (238, 244, 255) if hover else (196, 210, 240),
-                     btn, border_radius=12)
-    pygame.draw.rect(screen, (40, 48, 90), btn, 2, border_radius=12)
-    label = font.render(i18n.ui("skip"), True, (20, 26, 50))
-    screen.blit(label, label.get_rect(center=btn.center))
+            center=(WIDTH // 2, int(HEIGHT * 0.10) + i * int(56 * i18n.scale()))))
+    # Skip button (intro only: the victory cutscene must play out)
+    if intro:
+        btn = cutscene_skip_rect()
+        hover = btn.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, (238, 244, 255) if hover else (196, 210, 240),
+                         btn, border_radius=12)
+        pygame.draw.rect(screen, (40, 48, 90), btn, 2, border_radius=12)
+        label = font.render(i18n.ui("skip"), True, (20, 26, 50))
+        screen.blit(label, label.get_rect(center=btn.center))
 
-    hint = small_font.render(i18n.ui("cutscene_skip"), True, (200, 206, 230))
-    hint.set_alpha(int(150 + 70 * math.sin(t * 3)))
-    screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT - 60)))
+        hint = small_font.render(i18n.ui("cutscene_skip"), True,
+                                 (200, 206, 230))
+        hint.set_alpha(int(150 + 70 * math.sin(t * 3)))
+        screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT - 60)))
+    draw_custom_cursor(screen, pygame.mouse.get_pos(), True)
 
 
 def cutscene_skip_rect():
@@ -3084,8 +3868,10 @@ def apply_summit():
     """Once the backdrop is big enough, the peak is a platform (no extra GameObject)."""
     global player_x, player_y, player_velocity_x, player_velocity_y
     global player_is_on_ground, level_cleared, summit_locked
-    global summit_msg_timer, summit_msg_shown
+    global summit_msg_timer, summit_msg_shown, run_peak_height
     feet = ground_level - (player_y + player_height)
+    if feet > run_peak_height:
+        run_peak_height = feet
     achievements.update_height(feet)
     if not summit_msg_shown and feet >= SUMMIT_MSG_HEIGHT:
         summit_msg_shown = True
@@ -3100,6 +3886,7 @@ def apply_summit():
             player_velocity_y = 0
             player_is_on_ground = True
             summit_locked = True
+            start_summit_music()
         if summit_locked:
             # One-way air wall: can enter but not leave
             if player_x < x0 + 2:
@@ -3120,10 +3907,11 @@ def apply_summit():
 
 
 def run_game():
-    pygame.mouse.set_visible(False)
+    _hide_os_cursor()
     
     global current_state, player_x, player_y, camera_x, camera_y, sound_volume, music_volume
-    global level_cleared, summit_msg_timer, current_slot
+    global level_cleared, summit_msg_timer, current_slot, pending_delete_slot
+    global tutorial_page, ach_page, idle_seconds
     global player_entry_time
     
     last_time = pygame.time.get_ticks()
@@ -3172,17 +3960,23 @@ def run_game():
                     if _rect.collidepoint(event.pos):
                         if _code != i18n.current:
                             i18n.set_lang(_code)
+                            pygame.display.set_caption(i18n.ui("game_title"))
                             rebuild_fonts()
                             refresh_texts()
                             SaveManager.save_settings(sound_volume, music_volume)
                         break
             if event.type == pygame.QUIT:
+                if (current_state == GameState.PLAYING and not level_cleared
+                        and current_slot is not None):
+                    SaveManager.save_slot(current_slot, player_x, player_y,
+                                      player_velocity_x, player_velocity_y)
                 running = False
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     if current_state == GameState.CUTSCENE:
-                        end_cutscene()
+                        if cutscene_kind != "win":
+                            end_cutscene()
                     elif current_state == GameState.MENU:
                         for key, rect in menu_buttons():
                             if not rect.collidepoint(event.pos):
@@ -3198,11 +3992,16 @@ def run_game():
                                 if slot is not None:
                                     current_slot = slot
                                     reset_game()
-                                    SaveManager.save_slot(current_slot, player_x, player_y)
+                                    SaveManager.save_slot(current_slot, player_x, player_y,
+                                      player_velocity_x, player_velocity_y)
                                     start_cutscene("intro")
                                     just_entered_game = True
                                     player_entry_time = pygame.time.get_ticks() / 1000.0
+                            elif key == "tutorial":
+                                tutorial_page = 0
+                                current_state = GameState.TUTORIAL
                             elif key == "saves":
+                                pending_delete_slot = None
                                 current_state = GameState.SAVES
                             elif key == "achievements":
                                 current_state = GameState.ACHIEVEMENTS
@@ -3215,13 +4014,33 @@ def run_game():
                                 running = False
                             break
 
+                    elif current_state == GameState.TUTORIAL:
+                        for key, rect in tutorial_buttons():
+                            if not rect.collidepoint(event.pos):
+                                continue
+                            if key == "prev":
+                                tutorial_page = max(0, tutorial_page - 1)
+                            elif key == "next":
+                                tutorial_page = min(len(TUTORIAL_PAGES) - 1,
+                                                    tutorial_page + 1)
+                            else:
+                                current_state = GameState.MENU
+                            break
                     elif current_state == GameState.SAVES:
-                        if saves_back_rect().collidepoint(event.pos):
+                        if pending_delete_slot is not None:
+                            yes_rect, no_rect = delete_dialog_rects()
+                            if yes_rect.collidepoint(event.pos):
+                                SaveManager.delete_slot(pending_delete_slot)
+                                pending_delete_slot = None
+                            elif no_rect.collidepoint(event.pos):
+                                pending_delete_slot = None
+                        elif saves_back_rect().collidepoint(event.pos):
                             current_state = GameState.MENU
                         else:
                             for slot, load_rect, del_rect in saves_slot_rects():
                                 if del_rect.collidepoint(event.pos):
-                                    SaveManager.delete_slot(slot)
+                                    if SaveManager.load_slot(slot):
+                                        pending_delete_slot = slot
                                     break
                                 if load_rect.collidepoint(event.pos):
                                     made_new = False
@@ -3230,7 +4049,8 @@ def run_game():
                                     else:
                                         current_slot = slot
                                         reset_game()
-                                        SaveManager.save_slot(current_slot, player_x, player_y)
+                                        SaveManager.save_slot(current_slot, player_x, player_y,
+                                      player_velocity_x, player_velocity_y)
                                         made_new = True
                                     if made_new:
                                         start_cutscene("intro")
@@ -3241,8 +4061,14 @@ def run_game():
                                     break
 
                     elif current_state == GameState.ACHIEVEMENTS:
+                        global ach_page
                         if saves_back_rect().collidepoint(event.pos):
                             current_state = GameState.MENU
+                        else:
+                            for i, rect in enumerate(ach_tab_rects()):
+                                if rect.collidepoint(event.pos):
+                                    ach_page = i
+                                    break
 
                     elif current_state == GameState.PLAYING:
                         back_rect = victory_button_rect()
@@ -3251,7 +4077,8 @@ def run_game():
                             current_state = GameState.MENU
                         elif return_button_rect.collidepoint(event.pos):
                             if not level_cleared:
-                                SaveManager.save_slot(current_slot, player_x, player_y)
+                                SaveManager.save_slot(current_slot, player_x, player_y,
+                                      player_velocity_x, player_velocity_y)
                             current_state = GameState.MENU
                     
                     elif current_state == GameState.SETTINGS:
@@ -3397,10 +4224,26 @@ def run_game():
                                 sound_manager.set_music_volume(1)
                 
                 elif current_state == GameState.CUTSCENE:
-                    if event.key in (pygame.K_ESCAPE, pygame.K_SPACE,
-                                     pygame.K_RETURN, pygame.K_KP_ENTER):
-                        end_cutscene()
+                    if cutscene_kind != "win":
+                        if event.key in (pygame.K_ESCAPE, pygame.K_SPACE,
+                                         pygame.K_RETURN, pygame.K_KP_ENTER):
+                            end_cutscene()
 
+                elif current_state == GameState.ACHIEVEMENTS:
+                    if event.key in (pygame.K_LEFT, pygame.K_a):
+                        ach_page = max(0, ach_page - 1)
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                        ach_page = min(5, ach_page + 1)
+                    elif event.key == pygame.K_ESCAPE:
+                        current_state = GameState.MENU
+                elif current_state == GameState.TUTORIAL:
+                    if event.key in (pygame.K_LEFT, pygame.K_a):
+                        tutorial_page = max(0, tutorial_page - 1)
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                        tutorial_page = min(len(TUTORIAL_PAGES) - 1,
+                                            tutorial_page + 1)
+                    elif event.key == pygame.K_ESCAPE:
+                        current_state = GameState.MENU
                 elif current_state == GameState.MENU:
                     # Menu keyboard navigation
                     if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
@@ -3416,8 +4259,9 @@ def run_game():
                             if slot is not None:
                                 current_slot = slot
                                 reset_game()
-                                SaveManager.save_slot(current_slot, player_x,
-                                                      player_y)
+                                SaveManager.save_slot(current_slot, player_x, player_y,
+                                                      player_velocity_x,
+                                                      player_velocity_y)
                                 start_cutscene("intro")
                                 just_entered_game = True
                                 player_entry_time = pygame.time.get_ticks() / 1000.0
@@ -3428,7 +4272,8 @@ def run_game():
                     # In-game shortcuts
                     if event.key == pygame.K_ESCAPE:
                         if not level_cleared:
-                            SaveManager.save_slot(current_slot, player_x, player_y)
+                            SaveManager.save_slot(current_slot, player_x, player_y,
+                                      player_velocity_x, player_velocity_y)
                         current_state = GameState.MENU
             
             elif event.type == pygame.KEYUP:
@@ -3437,6 +4282,10 @@ def run_game():
                     if selected_slider:
                         selected_slider.handle_keyboard_release(event.key)
         
+        # Leaving the summit / level for the menu restores the normal theme
+        if current_state == GameState.MENU and summit_music_stage != 0:
+            reset_summit_music()
+
         screen.fill(SKY_BLUE)
         if current_state == GameState.PLAYING:  # BACKDROP
             backdrop_layer.draw(screen, camera_x, camera_y,
@@ -3458,6 +4307,7 @@ def run_game():
             update_candies(dt)
             update_explosions(dt)
             update_screen_shake(dt)
+            update_summit_music(dt)   # summit cross-fade
             
             keys = pygame.key.get_pressed()
             
@@ -3469,6 +4319,7 @@ def run_game():
             flavor.update(dt)  # FLAVOR
             pull_achievement_toasts()
             update_toasts(dt)
+            update_fall_tips(dt)  # repeated-fall encouragement
             summit_msg_timer = max(0.0, summit_msg_timer - dt)  # summit message
             # Random chatter
             global chatter_timer, chatter_text, chatter_life, chatter_last
@@ -3508,22 +4359,22 @@ def run_game():
             return_rect_text = return_surface.get_rect(center=return_button_rect.center)
             screen.blit(return_surface, return_rect_text)
             
-            # Show entry protection timer
-            if just_entered_game:
-                protection_time_left = max(0, ENTRY_PROTECTION_TIME - (current_time_sec - player_entry_time))
-                if protection_time_left > 0:
-                    tip_text = small_font.render(f"Protection: {protection_time_left:.1f}s", True, YELLOW)
-                    tip_rect = tip_text.get_rect(center=(WIDTH // 2, 50))
-                    screen.blit(tip_text, tip_rect)
-            
             draw_aim_preview(screen, mouse_pos, is_ready)  # dotted throw preview
-            draw_custom_cursor(screen, mouse_pos, is_ready)
+            # Normally there is no pointer while playing (the dotted preview
+            # and the force meter show the aim); hold Alt to bring the cursor
+            # back, e.g. to look for the exit button.
+            if keys[pygame.K_LALT] or keys[pygame.K_RALT]:
+                draw_custom_cursor(screen, mouse_pos, is_ready)
             draw_summit_msg(screen)  # summit message
             draw_summit_hint(screen)  # summit hint + text arrow
-            if level_cleared:
-                draw_victory(screen)   # old black victory screen (after the cutscene)
             draw_chatter(screen)  # random chatter
             draw_toasts(screen)  # achievement popups
+            draw_fall_tip(screen)  # "you keep slipping here" tip
+            draw_progress_bar(screen)  # climb progress (left edge)
+            draw_force_meter(screen, mouse_pos, is_ready)  # throw power
+            if level_cleared:
+                # drawn last: the victory overlay (and its cursor) stays on top
+                draw_victory(screen)
             
 
         elif current_state == GameState.CUTSCENE:
@@ -3554,6 +4405,8 @@ def run_game():
                 screen.blit(surface, surface.get_rect(center=rect.center))
             draw_custom_cursor(screen, mouse_pos, True)
 
+        elif current_state == GameState.TUTORIAL:
+            draw_tutorial(screen, mouse_pos)
         elif current_state == GameState.SAVES:
             title_text = big_font.render(i18n.ui("saves"), True, WHITE)
             screen.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 4)))
@@ -3582,32 +4435,36 @@ def run_game():
             pygame.draw.rect(screen, BLACK, back, 2)
             surface = font.render(i18n.ui("back"), True, BLACK)
             screen.blit(surface, surface.get_rect(center=back.center))
+            if pending_delete_slot is not None:
+                veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                veil.fill((0, 0, 0, 160))
+                screen.blit(veil, (0, 0))
+                box = pygame.Rect(0, 0, 640, 250)
+                box.center = (WIDTH // 2, HEIGHT // 2)
+                pygame.draw.rect(screen, (18, 22, 46), box, border_radius=14)
+                pygame.draw.rect(screen, (255, 214, 120), box, 2, border_radius=14)
+                title = font.render(
+                    i18n.ui("delete_save_title").format(n=pending_delete_slot),
+                    True, WHITE)
+                screen.blit(title, title.get_rect(center=(WIDTH // 2, box.top + 70)))
+                hint = small_font.render(i18n.ui("delete_save_hint"), True,
+                                         (200, 210, 235))
+                screen.blit(hint, hint.get_rect(center=(WIDTH // 2, box.top + 120)))
+                yes_rect, no_rect = delete_dialog_rects()
+                for rect, key, color in ((yes_rect, "delete", (210, 80, 80)),
+                                         (no_rect, "cancel", (110, 122, 158))):
+                    hot = rect.collidepoint(mouse_pos)
+                    base = color if hot else tuple(max(0, c - 30) for c in color)
+                    pygame.draw.rect(screen, base, rect)
+                    pygame.draw.rect(screen, BLACK, rect, 2)
+                    label = font.render(i18n.ui(key), True, WHITE)
+                    screen.blit(label, label.get_rect(center=rect.center))
             draw_custom_cursor(screen, mouse_pos, True)
 
         elif current_state == GameState.ACHIEVEMENTS:
             title_text = big_font.render(i18n.ui("achievements"), True, WHITE)
-            screen.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 6)))
-            rows = achievements.get_list(i18n.current)
-            y = HEIGHT // 6 + 110
-            for row in rows:
-                unlocked = row["unlocked"]
-                mark = "[x]" if unlocked else "[ ]"
-                line = "%s  %s · Lv.%d/%d  %s" % (
-                    mark, row["name"], row["level"], row["max_level"], row["tier_name"])
-                surface = font.render(line, True,
-                                      (255, 226, 130) if unlocked else (150, 152, 170))
-                screen.blit(surface, (WIDTH // 2 - 430, y))
-                surface2 = small_font.render(row["desc"], True,
-                                             (210, 216, 232) if unlocked else (120, 122, 140))
-                screen.blit(surface2, (WIDTH // 2 - 380, y + 42))
-                y += 100
-            back = saves_back_rect()
-            hovered = back.collidepoint(mouse_pos)
-            pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back)
-            pygame.draw.rect(screen, BLACK, back, 2)
-            surface = font.render(i18n.ui("back"), True, BLACK)
-            screen.blit(surface, surface.get_rect(center=back.center))
-            draw_custom_cursor(screen, mouse_pos, True)
+            screen.blit(title_text, title_text.get_rect(center=(WIDTH // 2, 46)))
+            draw_achievements(screen, mouse_pos)
 
         elif current_state == GameState.SETTINGS:
             

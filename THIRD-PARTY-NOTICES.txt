@@ -1,0 +1,29 @@
+A SLIPERY CLIMB — third-party notices
+
+This game is built with free and open-source software. The following components
+are included in the packaged builds:
+
+pygame 2.6
+  License: GNU Lesser General Public License 2.1 or later
+  https://www.pygame.org
+
+SDL2, SDL2_image, SDL2_mixer, SDL2_ttf
+  License: zlib license
+  https://www.libsdl.org
+
+Python 3.12
+  License: Python Software Foundation License
+  https://www.python.org
+
+Noto Sans SC and Noto Sans KR subsets (fonts/)
+  License: SIL Open Font License 1.1
+  https://fonts.google.com/noto
+  Subsetted to only the characters used by this game.
+
+freesansbold.ttf (the default pygame font)
+  License: Bitstream Vera / GNU FreeFont license with font exception
+  https://www.gnu.org/software/freefont/
+
+PyInstaller (build tool, not distributed as a component)
+  License: GPL 2.0 with a special exception for bundled applications
+  https://pyinstaller.org

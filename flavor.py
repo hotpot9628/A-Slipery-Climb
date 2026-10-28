@@ -31,6 +31,10 @@ import paths
 
 SEEN_FILE = paths.user("tutorial_seen.json")
 
+# Tutorial lines stay on screen for good: the old "hide once seen"
+# behaviour made newcomers miss them.
+HIDE_TUTORIALS = False
+
 NEAR_SCREEN = 140          # this much off screen still counts as seen
 SEEN_TIME = 0.8            # seconds on screen to count as seen
 FALL_DROP = 280            # drop height (px) that triggers a taunt
@@ -122,6 +126,10 @@ def _save_seen():
 
 
 def _apply_hidden():
+    if not HIDE_TUTORIALS:
+        for obj in _texts():
+            obj.text_visible = True
+        return
     for obj in _texts():
         if _key(obj) in _seen:
             obj.text_visible = False
@@ -159,6 +167,8 @@ def update(dt):
 
 
 def _update_tutorials(dt):
+    if not HIDE_TUTORIALS:
+        return
     ns = _NS
     width, height = ns["WIDTH"], ns["HEIGHT"]
     cam_x, cam_y = ns["camera_x"], ns["camera_y"]

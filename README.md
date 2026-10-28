@@ -43,6 +43,9 @@ ride the moving platforms up the mountain.
 
 No Python or pygame installation is needed: the builds are self-contained.
 
+> **macOS:** the current macOS build is for Apple Silicon (M1/M2/M3 and newer);
+> Intel Macs are not supported by that build yet.
+
 ### First launch
 
 - **Windows** may show *"Windows protected your PC"* (the exe is not
