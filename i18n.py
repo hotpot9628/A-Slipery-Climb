@@ -1086,3 +1086,105 @@ for _code, (_l4, _l5, _recap) in _WIN_EXTRA.items():
     STRINGS[_code]["win_line4"] = _l4
     STRINGS[_code]["win_line5"] = _l5
     STRINGS[_code]["win_recap"] = _recap
+
+# Mode selection when starting a new game / using an empty slot
+UI_EN["mode_title"] = "How do you want to climb?"
+UI_EN["normal_mode"] = "Regular"
+UI_EN["easy_mode"] = "Easy"
+UI_EN["easy_tag"] = "Easy"
+UI_EN["mode_hint"] = ("Easy mode adds 8 checkpoints: fall and you return "
+                      "to the last one.")
+_MODE = {
+    "zh": ("选择攀登方式", "常规", "简单", "简单",
+           "简单模式有 8 个检查点：掉下去会回到最近的一个。"),
+    "ja": ("登り方を選ぶ", "通常", "かんたん", "かんたん",
+           "かんたんモードは 8 か所のチェックポイント付き：落ちると最後の地点へ戻ります。"),
+    "ko": ("등반 방식 선택", "일반", "쉬움", "쉬움",
+           "쉬움 모드는 체크포인트 8곳이 있어, 떨어지면 마지막 지점으로 돌아갑니다."),
+    "ru": ("Как подниматься?", "Обычный", "Лёгкий", "Лёгкий",
+           "В лёгком режиме 8 контрольных точек: упал — вернулся к последней."),
+    "de": ("Wie möchtest du klettern?", "Normal", "Leicht", "Leicht",
+           "Im leichten Modus gibt es 8 Checkpoints: fällst du, geht es zum letzten zurück."),
+    "fr": ("Comment grimper ?", "Normal", "Facile", "Facile",
+           "Le mode facile ajoute 8 points de contrôle : en cas de chute, retour au dernier."),
+    "it": ("Come vuoi salire?", "Normale", "Facile", "Facile",
+           "La modalità facile ha 8 checkpoint: se cadi torni all'ultimo."),
+    "es": ("¿Cómo quieres escalar?", "Normal", "Fácil", "Fácil",
+           "El modo fácil tiene 8 puntos de control: si caes vuelves al último."),
+}
+for _code, (_title, _normal, _easy, _tag, _hint) in _MODE.items():
+    STRINGS[_code]["mode_title"] = _title
+    STRINGS[_code]["normal_mode"] = _normal
+    STRINGS[_code]["easy_mode"] = _easy
+    STRINGS[_code]["easy_tag"] = _tag
+    STRINGS[_code]["mode_hint"] = _hint
+
+
+# Fullscreen setting + checkpoint label
+UI_EN["fullscreen"] = "Fullscreen"
+UI_EN["on"] = "On"
+UI_EN["off"] = "Off"
+UI_EN["checkpoint"] = "Checkpoint"
+_FS = {
+    "zh": ("全屏", "开", "关", "检查点"),
+    "ja": ("全画面", "オン", "オフ", "チェックポイント"),
+    "ko": ("전체 화면", "켜짐", "꺼짐", "체크포인트"),
+    "ru": ("Полный экран", "Вкл", "Выкл", "Контрольная точка"),
+    "de": ("Vollbild", "Ein", "Aus", "Checkpoint"),
+    "fr": ("Plein écran", "Oui", "Non", "Point de contrôle"),
+    "it": ("Schermo intero", "Sì", "No", "Checkpoint"),
+    "es": ("Pantalla completa", "Sí", "No", "Punto de control"),
+}
+for _code, (_fs, _on, _off, _cp) in _FS.items():
+    STRINGS[_code]["fullscreen"] = _fs
+    STRINGS[_code]["on"] = _on
+    STRINGS[_code]["off"] = _off
+    STRINGS[_code]["checkpoint"] = _cp
+
+
+# Alt now toggles the pointer instead of being held
+_NEW_POINTER = ("There is no pointer while playing. Press Alt to toggle "
+                "the cursor.")
+UI_EN[_NEW_POINTER] = _NEW_POINTER
+_TUT = {
+    "zh": "游玩时没有光标，按 Alt 可以切换光标显示。",
+    "ja": "プレイ中はカーソルがない。Alt で表示を切り替えられる。",
+    "ko": "플레이 중에는 커서가 없습니다. Alt로 표시를 전환할 수 있습니다.",
+    "ru": "Во время игры курсора нет. Нажми Alt, чтобы включить или выключить его.",
+    "de": "Im Spiel gibt es keinen Zeiger. Drücke Alt, um ihn ein- oder auszuschalten.",
+    "fr": "Pas de curseur pendant le jeu. Appuie sur Alt pour l'afficher ou le cacher.",
+    "it": "Durante il gioco non c'è cursore. Premi Alt per mostrarlo o nasconderlo.",
+    "es": "No hay cursor mientras juegas. Pulsa Alt para mostrarlo u ocultarlo.",
+}
+for _code, _txt in _TUT.items():
+    STRINGS[_code][_NEW_POINTER] = _txt
+
+# Shown next to the fullscreen toggle when it differs from the launch state
+UI_EN["restart_hint"] = "restart"
+_RESTART = {
+    "zh": "需重启",
+    "ja": "要再起動",
+    "ko": "재시작",
+    "ru": "перезапуск",
+    "de": "Neustart",
+    "fr": "redémarrer",
+    "it": "riavvio",
+    "es": "reiniciar",
+}
+for _code, _txt in _RESTART.items():
+    STRINGS[_code]["restart_hint"] = _txt
+
+# Voice volume slider (recorded taunts)
+UI_EN["voice"] = "Voice"
+_VOICE = {
+    "zh": "语音",
+    "ja": "ボイス",
+    "ko": "음성",
+    "ru": "Голос",
+    "de": "Stimme",
+    "fr": "Voix",
+    "it": "Voce",
+    "es": "Voz",
+}
+for _code, _txt in _VOICE.items():
+    STRINGS[_code]["voice"] = _txt

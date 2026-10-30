@@ -35,7 +35,7 @@ ALL_ORDER = NORMAL_ORDER + HIDDEN_ORDER
 HIDDEN_TIERS = {
     "statue": 60.0,        # seconds standing still
     "selfhit": 1.5,        # seconds between throw and being blasted by your own candy
-    "streak": 8.0,         # seconds airborne without landing
+    "streak": 4.0,         # seconds airborne without landing
     "chain": 30,           # chained explosions in one run
     "fails": 7,            # falls at the same spot in one run
 }
@@ -527,6 +527,13 @@ def add_idle(dt):
     before = state["idle"]
     state["idle"] += max(0.0, dt)
     _notify_hidden("statue", before, state["idle"])
+
+
+def reset_idle():
+    """Standing still must be uninterrupted: moving resets the statue timer."""
+    _ensure()
+    if state["idle"]:
+        state["idle"] = 0.0
 
 
 def update_selfhit(age_seconds):

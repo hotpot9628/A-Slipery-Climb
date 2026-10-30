@@ -225,10 +225,18 @@ def _update_fall():
 # ---------------------------------------------------------------- taunts
 def _show_taunt():
     global _taunt_lines, _taunt_timer
-    line = i18n.text(random.choice(TAUNTS))
-    second = i18n.text(random.choice(SECOND_TAUNTS)) if random.random() < 0.5 else ""
+    first_index = random.randrange(len(TAUNTS))
+    line = i18n.text(TAUNTS[first_index])
+    second_index = None
+    second = ""
+    if random.random() < 0.5:
+        second_index = random.randrange(len(SECOND_TAUNTS))
+        second = i18n.text(SECOND_TAUNTS[second_index])
     _taunt_lines = [line] + ([second] if second else [])
     _taunt_timer = TAUNT_DURATION
+    speak = _NS.get("play_fall_taunt_voice") if _NS is not None else None
+    if callable(speak):
+        speak(first_index, second_index)
 
 
 def _tick_taunt(dt):

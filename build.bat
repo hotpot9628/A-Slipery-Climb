@@ -15,6 +15,8 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed ^
   --add-data "textures;textures" ^
   --add-data "sounds;sounds" ^
   --add-data "fonts;fonts" ^
+  --add-data "tutorial;tutorial" ^
+  --version-file version_info.txt ^
   main.py || goto :error
 
 echo.
