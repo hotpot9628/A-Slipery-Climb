@@ -26,3 +26,6 @@ settings.json
 # Editors
 .vscode/
 .idea/
+
+# Voice clips ship as voice.zip; CI / setup unpacks them into sounds/voice/
+sounds/voice/
