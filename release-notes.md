@@ -1,10 +1,20 @@
-# A SLIPERY CLIMB 1.4
+# A SLIPERY CLIMB 1.4.1
 
 A small, slippery climbing game about a Santa who has to get up a very big
 mountain to deliver presents. There is no walk button: you move by throwing
 candy and letting the explosions push you around.
 
 Available for **Windows, macOS and Linux**.
+
+## What's fixed in 1.4.1
+
+- **Linux builds now run on older distributions.** The Linux packages are
+  built inside an Ubuntu 20.04 container, so they no longer need a very new
+  glibc and should start on older distros again.
+- **Linux fullscreen covers the whole screen.** In fullscreen mode the
+  taskbar used to stay visible on top of the game (the same problem macOS
+  had); Linux now uses real fullscreen like macOS, so the taskbar is hidden.
+- Windows and macOS builds are unchanged apart from the version number.
 
 ## What's new in 1.4
 
@@ -18,7 +28,8 @@ Available for **Windows, macOS and Linux**.
   diamonds on the left edge, the ones ahead are red, and a pulsing arrow points
   at the next one when you get close. The Easy HUD also shows `Checkpoint n/8`.
 - **Fullscreen / window mode.** Settings now has a **Fullscreen** switch:
-  on = borderless fullscreen, off = a normal window. It takes effect after a
+  on = fullscreen (borderless window on Windows, real fullscreen on
+  macOS/Linux), off = a normal window. It takes effect after a
   game restart (the menu tells you), and every screen and menu scales to the
   window.
 - **Voices in 9 languages.** Santa's idle chatter and the two taunts he says
@@ -94,12 +105,20 @@ Settings, achievements and saves are stored in:
 
 ---
 
-# A SLIPERY CLIMB 1.4 — 中文
+# A SLIPERY CLIMB 1.4.1 — 中文
 
 一个关于圣诞老人的小游戏：他要爬上很高的山，把礼物送到山顶的小屋。没有“走”键，
 只能靠扔糖果、借爆炸反冲往上爬。
 
 提供 **Windows、macOS 和 Linux** 版本。
+
+## 1.4.1 修复
+
+- **Linux 老系统又能跑了**：Linux 包改用 Ubuntu 20.04 容器构建，不再依赖
+  很新的 glibc，老发行版也能启动。
+- **Linux 全屏遮住任务栏了**：全屏时任务栏原先会浮在游戏上面（和 macOS
+  之前一样的问题），现在 Linux 和 macOS 一样使用真全屏，任务栏不再出现。
+- Windows / macOS 除版本号外没有变化。
 
 ## 1.4 更新内容
 
@@ -110,7 +129,8 @@ Settings, achievements and saves are stored in:
 - **进度条上的检查点标记**：已到达的检查点是左边缘的绿色菱形，还没到的是红色；
   快接近下一个检查点时会有跳动的箭头指向它。简单模式顶部还会显示
   `检查点 n/8`。
-- **全屏 / 窗口模式**：设置里新增**全屏**开关——开 = 无边框全屏，关 = 普通窗口。
+- **全屏 / 窗口模式**：设置里新增**全屏**开关——开 = 全屏（Windows 为无边框
+  窗口，macOS/Linux 为真全屏），关 = 普通窗口。
   重启游戏后生效（菜单里有提示），所有界面都会按窗口大小自适应。
 - **9 种语言配音**：圣诞老人的闲聊，以及大摔之后头顶的两句嘲讽，现在都会用九种
   语言念出来。设置里新增**语音**音量条，和音效、音乐分开调。
@@ -140,13 +160,22 @@ Silicon 专用。
 
 ---
 
-# A SLIPERY CLIMB 1.4 — Русский
+# A SLIPERY CLIMB 1.4.1 — Русский
 
 Небольшой скользкий платформер про Санту, которому нужно подняться на очень
 высокую гору и доставить подарки. Кнопки «идти» нет: двигаешься, бросая конфеты
 и используя взрывы как реактивную тягу.
 
 Есть сборки для **Windows, macOS и Linux**.
+
+## Что исправлено в 1.4.1
+
+- **Linux-сборки снова запускаются на старых дистрибутивах.** Они собираются
+  в контейнере Ubuntu 20.04, поэтому больше не требуют слишком новый glibc.
+- **Полный экран в Linux закрывает панель задач.** Раньше панель оставалась
+  поверх игры (та же проблема, что была в macOS); теперь Linux использует
+  настоящий полный экран, как macOS.
+- Сборки Windows и macOS не изменились, кроме номера версии.
 
 ## Что нового в 1.4
 
@@ -160,7 +189,8 @@ Silicon 专用。
   края, ещё не достигнутые — красные; рядом со следующей появляется пульсирующая
   стрелка. В лёгком режиме сверху видно `Точка n/8`.
 - **Полный экран / окно.** В настройках появился переключатель **Полный экран**:
-  включён — безрамочный полный экран, выключен — обычное окно. Применяется после
+  включён — полный экран (безрамочное окно в Windows, настоящий полный экран в
+  macOS/Linux), выключен — обычное окно. Применяется после
   перезапуска игры (меню об этом пишет), все экраны подстраиваются под окно.
 - **Голоса на 9 языках.** Бормотание Санты и две реплики-подколки после сильного
   падения теперь озвучены на всех девяти языках. В настройках появился ползунок

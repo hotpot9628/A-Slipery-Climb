@@ -17,8 +17,13 @@ ride the moving platforms up the mountain.
   drop jumps, ferries, elevators, curved moving platforms and a windy ridge
 - Candy-bomb movement: throw, blast, slide, climb
 - Dotted trajectory preview while aiming: see where the candy will fly
+- **Easy mode with 8 checkpoints** (picked per new save) or the classic normal
+  mode
+- **Full voice-over in 9 languages** for idle chatter and fall taunts, with
+  separate sound, music and voice volume sliders
+- **Fullscreen or windowed** display, with menus that scale to the window
 - 9 languages: English, русский, 中文, 日本語, 한국어, Deutsch, Français,
-  Italiano, Español
+  Italiano, Español (fonts included)
 - Intro and victory cutscenes (skippable), idle chatter on the way up
 - Leveled achievements, 5 save slots
 - Clearing the mountain deletes that save slot, so every run starts fresh
@@ -28,6 +33,7 @@ ride the moving platforms up the mountain.
 | Input | Action |
 |---|---|
 | Mouse | aim and throw candy |
+| Alt | toggle the cursor while playing |
 | Esc | save and return to the menu |
 | Space / Enter | skip cutscene |
 
@@ -71,6 +77,9 @@ Remove that folder to reset settings, achievements and all saves.
 ## Run from source
 
 - Install pygame: `pip install pygame`
+- Unpack the voice clips once (they ship as one archive to keep the repo small):
+  `unzip voice.zip -d sounds` (Windows PowerShell:
+  `Expand-Archive voice.zip -DestinationPath sounds`)
 - Start the game: `python main.py`
 
 Python 3.11+ and pygame 2.6 are required.
@@ -79,7 +88,9 @@ Python 3.11+ and pygame 2.6 are required.
 
 **Windows** — run this one line in the project folder:
 
-`python -m PyInstaller --noconfirm --clean --onefile --windowed --name "A Slipery Climb" --icon icon.ico --add-data "textures;textures" --add-data "sounds;sounds" main.py`
+`python -m PyInstaller --noconfirm --clean --onefile --windowed --name "A Slipery Climb" --icon icon.ico --version-file version_info.txt --add-data "textures;textures" --add-data "sounds;sounds" --add-data "fonts;fonts" --add-data "tutorial;tutorial" main.py`
+
+(or just run `build.bat`, which does the same thing)
 
 **macOS / Linux / deb / rpm** — push a tag (for example `v1.0.1`): the GitHub
 Actions workflow in `.github/workflows/build.yml` builds every platform and

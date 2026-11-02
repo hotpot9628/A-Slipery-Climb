@@ -48,14 +48,24 @@ launch_fullscreen = fullscreen_mode
 
 if fullscreen_mode:
     WIDTH, HEIGHT = DESKTOP_W, DESKTOP_H
-    DISPLAY_FLAGS = (pygame.FULLSCREEN if sys.platform == "darwin"
-                     else pygame.NOFRAME)
+    # Windows: borderless window at desktop size keeps the taskbar hidden.
+    # macOS / Linux: a borderless window is not a real fullscreen there - the
+    # dock / taskbar / top bar stays visible on top. Use real FULLSCREEN so the
+    # game covers the whole screen.
+    DISPLAY_FLAGS = (pygame.NOFRAME if sys.platform == "win32"
+                     else pygame.FULLSCREEN)
 else:
     WIDTH = max(640, int(DESKTOP_W * 0.82))
     HEIGHT = max(480, int(DESKTOP_H * 0.82))
     DISPLAY_FLAGS = 0
 
-screen = pygame.display.set_mode((WIDTH, HEIGHT), DISPLAY_FLAGS)
+try:
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), DISPLAY_FLAGS)
+except pygame.error:
+    # Some Linux desktops (odd drivers / Wayland setups) reject FULLSCREEN;
+    # fall back to a normal window instead of crashing on start.
+    DISPLAY_FLAGS = 0
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), 0)
 pygame.display.set_caption("A SLIPERY CLIMB")
 
 
