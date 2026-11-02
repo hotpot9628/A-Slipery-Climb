@@ -10,6 +10,10 @@ moving platforms up the mountain.
 - Hand-made level (Getting Over It style): stairs, steep ladders, drop jumps,
   ferries, elevators and curved moving platforms
 - Candy-bomb movement: throw, blast, slide, climb
+- Easy mode with 8 checkpoints (picked per new save) or the classic normal mode
+- Full voice-over in 9 languages for idle chatter and fall taunts, with separate
+  sound, music and voice volume sliders
+- Fullscreen or windowed display, menus scale to the window
 - 9 languages: English, 中文, 日本語, 한국어, Русский, Deutsch, Français,
   Italiano, Español
 - Intro and victory cutscenes (skippable), idle chatter, leveled achievements
@@ -17,6 +21,7 @@ moving platforms up the mountain.
 
 Controls
   Mouse        aim and throw candy
+  Alt          toggle the cursor while playing
   Esc          save and return to the menu
   Space/Enter  skip cutscene
 

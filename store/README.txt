@@ -1,4 +1,4 @@
-A SLIPERY CLIMB  v1.0
+A SLIPERY CLIMB  v1.4
 =====================
 
 RUN
@@ -11,8 +11,14 @@ FIRST LAUNCH
 
 CONTROLS
   Mouse .......... aim and throw candy
+  Alt ............ toggle the cursor while playing
   Esc ............ save and return to the menu
   Space / Enter .. skip cutscene
+
+NEW IN 1.4
+  Easy mode with 8 checkpoints (choose it when you create a new save),
+  voice-over in 9 languages with its own volume slider, and a fullscreen /
+  window switch in Settings.
 
 WHERE IS MY DATA
   Settings, achievements and save slots are stored in:
