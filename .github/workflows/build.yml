@@ -79,7 +79,7 @@ jobs:
           path: ASliperyClimb_macOS.zip
 
   linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -106,7 +106,7 @@ jobs:
           path: ASliperyClimb_Linux.tar.gz
 
   linux-packages:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
