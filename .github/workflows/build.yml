@@ -29,7 +29,7 @@ jobs:
       - name: Build exe
         run: >
           python -m PyInstaller --noconfirm --clean --onefile --windowed
-          --name "A Slipery Climb" --icon icon.ico
+          --name "A Slipery Climb" --icon icons/slipery.ico
           --version-file version_info.txt
           --add-data "textures;textures" --add-data "sounds;sounds"
           --add-data "fonts;fonts" --add-data "tutorial;tutorial" main.py
@@ -59,7 +59,7 @@ jobs:
       - name: Build app
         run: |
           python -m PyInstaller --noconfirm --clean --windowed \
-            --name "A Slipery Climb" \
+            --name "A Slipery Climb" --icon icons/slipery.icns \
             --add-data "textures:textures" \
             --add-data "sounds:sounds" \
             --add-data "fonts:fonts" \
@@ -101,6 +101,11 @@ jobs:
             --add-data "tutorial:tutorial" \
             main.py
           cp LICENSE.txt ART-AND-AUDIO.txt THIRD-PARTY-NOTICES.txt "dist/A Slipery Climb/"
+          cp icons/slipery.png "dist/A Slipery Climb/asliperyclimb.png"
+          cp packaging/a-slipery-climb.desktop "dist/A Slipery Climb/"
+          cp packaging/run.sh "dist/A Slipery Climb/"
+          # tar keeps the exec bit, so the game runs without a manual chmod
+          chmod +x "dist/A Slipery Climb/A Slipery Climb" "dist/A Slipery Climb/run.sh"
           tar -czf "ASliperyClimb_Linux.tar.gz" -C dist "A Slipery Climb"
       - uses: actions/upload-artifact@v4
         with:
@@ -148,8 +153,11 @@ jobs:
           cp -r dist/asliperyclimb/* $ROOT/opt/asliperyclimb/
           cp LICENSE.txt ART-AND-AUDIO.txt THIRD-PARTY-NOTICES.txt \
             $ROOT/opt/asliperyclimb/
-          cp screenshots/gameplay.png $ROOT/usr/share/icons/hicolor/256x256/apps/asliperyclimb.png
-          printf '%s\n' '[Desktop Entry]' 'Name=A SLIPERY CLIMB' 'Exec=/opt/asliperyclimb/asliperyclimb' 'Icon=asliperyclimb' 'Terminal=false' 'Type=Application' 'Categories=Game;ArcadeGame;' > $ROOT/usr/share/applications/asliperyclimb.desktop
+          cp icons/slipery.png $ROOT/usr/share/icons/hicolor/256x256/apps/asliperyclimb.png
+          cp icons/slipery.png $ROOT/opt/asliperyclimb/asliperyclimb.png
+          cp packaging/a-slipery-climb.desktop $ROOT/usr/share/applications/asliperyclimb.desktop
+          sed -i 's|Exec=./A Slipery Climb|Exec=/opt/asliperyclimb/asliperyclimb|' \
+            $ROOT/usr/share/applications/asliperyclimb.desktop
           chmod +x $ROOT/opt/asliperyclimb/asliperyclimb
           fpm -s dir -t deb -n asliperyclimb -v "$VERSION" --architecture amd64 \
             --description "A slippery climbing game about a Santa" \
