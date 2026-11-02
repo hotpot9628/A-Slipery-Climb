@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=A SLIPERY CLIMB
+Comment=A slippery climbing game about a Santa
+Exec=./A Slipery Climb
+Icon=asliperyclimb
+Terminal=false
+Categories=Game;ArcadeGame;
+Keywords=santa;climbing;getting over it;candy;
