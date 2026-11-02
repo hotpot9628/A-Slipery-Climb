@@ -66,8 +66,8 @@ jobs:
             --add-data "tutorial:tutorial" \
             main.py
           PLIST="dist/A Slipery Climb.app/Contents/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.0" "$PLIST" || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.4.0" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.1" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.4.1" "$PLIST" || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier games.hotpot9628.asliperyclimb" "$PLIST" || true
           cd dist
           cp ../LICENSE.txt ../ART-AND-AUDIO.txt ../THIRD-PARTY-NOTICES.txt .
@@ -154,11 +154,11 @@ jobs:
           fpm -s dir -t deb -n asliperyclimb -v "$VERSION" --architecture amd64 \
             --description "A slippery climbing game about a Santa" \
             --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
-            --depends "libc6 (>= 2.35)" -C $ROOT .
+            --depends "libc6 (>= 2.31)" -C $ROOT .
           fpm -s dir -t rpm -n asliperyclimb -v "$VERSION" --architecture x86_64 \
             --description "A slippery climbing game about a Santa" \
             --url "https://github.com/hotpot9628/A-Slipery-Climb" --license MIT \
-            --depends "glibc >= 2.35" -C $ROOT .
+            --depends "glibc >= 2.31" -C $ROOT .
           mv asliperyclimb_*.deb ASliperyClimb_Linux_amd64.deb
           mv asliperyclimb-*.rpm ASliperyClimb_Linux_x86_64.rpm
       - uses: actions/upload-artifact@v4
