@@ -74,46 +74,6 @@ No Python or pygame installation is needed: the builds are self-contained.
 
 Remove that folder to reset settings, achievements and all saves.
 
-## Run from source
-
-- Install pygame: `pip install pygame`
-- Unpack the voice clips once (they ship as one archive to keep the repo small):
-  `unzip voice.zip -d sounds` (Windows PowerShell:
-  `Expand-Archive voice.zip -DestinationPath sounds`)
-- Start the game: `python main.py`
-
-Python 3.11+ and pygame 2.6 are required.
-
-## Build the release packages
-
-**Windows** — run this one line in the project folder:
-
-`python -m PyInstaller --noconfirm --clean --onefile --windowed --name "A Slipery Climb" --icon icon.ico --version-file version_info.txt --add-data "textures;textures" --add-data "sounds;sounds" --add-data "fonts;fonts" --add-data "tutorial;tutorial" main.py`
-
-(or just run `build.bat`, which does the same thing)
-
-**macOS / Linux / deb / rpm** — push a tag (for example `v1.0.1`): the GitHub
-Actions workflow in `.github/workflows/build.yml` builds every platform and
-attaches the packages to that release automatically.
-
-## Project layout
-
-| Path | Purpose |
-|---|---|
-| `main.py` | the game: fixed hand-made level and all systems |
-| `achievements.py` | leveled achievements, 9 languages |
-| `backdrop.py` | distant mountain backdrop and summit plateau |
-| `chatter.py` | idle chatter lines |
-| `flavor.py` | one-time tutorials and fall taunts |
-| `i18n.py` | 9-language strings and font selection |
-| `paths.py` | asset and user-data path resolution |
-| `textures/` | sprites and terrain tiles |
-| `sounds/` | music and sound effects |
-| `icon.ico` | application icon |
-| `.github/workflows/build.yml` | CI: Windows, macOS, Linux, deb, rpm |
-
-![summit](screenshots/summit.png)
-
 ## 中文
 
 一个关于圣诞老人的小游戏：他要爬上很高的山，把礼物送到山顶的小屋。
@@ -155,6 +115,13 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 `~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
 
 ![cutscene](screenshots/cutscene.png)
+
+## Made with
+
+Pygame 2.6 and Python 3. This is a small solo project: the level is hand-built
+and all art, audio and voice lines are shipped inside the download.
+
+Building from source? See [BUILDING.md](BUILDING.md).
 
 ## License
 
