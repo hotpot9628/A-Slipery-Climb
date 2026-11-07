@@ -11,19 +11,30 @@ moving platforms up the mountain.
   ferries, elevators and curved moving platforms
 - Candy-bomb movement: throw, blast, slide, climb
 - Easy mode with 8 checkpoints (picked per new save) or the classic normal mode
+- Free Climb: clear the mountain once in Regular mode, then explore it as a
+  sandbox — a map of
+  the whole climb, right-click to teleport anywhere, achievements off
+- Profiles (accounts): several players on one computer, each with their own
+  save slots, achievements and "cleared" status
+- Run timer next to the Exit button, frozen on the victory screen
 - Full voice-over in 9 languages for idle chatter and fall taunts, with separate
   sound, music and voice volume sliders
 - Fullscreen or windowed display, menus scale to the window
 - 9 languages: English, 中文, 日本語, 한국어, Русский, Deutsch, Français,
   Italiano, Español
 - Intro and victory cutscenes (skippable), idle chatter, leveled achievements
-- 5 save slots; clearing the mountain deletes that slot, so every run is fresh
+- 5 save slots per profile; clearing the mountain deletes that slot, so every
+  run is fresh
+- The game asks before quitting
 
 Controls
   Mouse        aim and throw candy
   Alt          toggle the cursor while playing
   Esc          save and return to the menu
   Space/Enter  skip cutscene
+  M            open / close the Free Climb map
+  Right click  teleport on the Free Climb map
 
-Windows build, no installation needed. Settings and saves are stored in
-%APPDATA%\A Slipery Climb.
+Windows build, no installation needed. Settings live in
+%APPDATA%\A Slipery Climb; each profile keeps its saves in the profiles
+sub-folder.
