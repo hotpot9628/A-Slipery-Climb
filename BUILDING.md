@@ -14,6 +14,7 @@ Players only need `README.md`.
 | `flavor.py` | one-time tutorials and fall taunts |
 | `i18n.py` | 9-language strings and font selection |
 | `paths.py` | asset and user-data path resolution |
+| `profiles.py` | local player profiles (accounts): per-profile save/achievement folders |
 | `textures/` | sprites and terrain tiles |
 | `sounds/` | music and sound effects |
 | `sounds/voice/` | unpacked voice clips (git-ignored, ship as `voice.zip`) |
@@ -29,7 +30,10 @@ Players only need `README.md`.
   `Expand-Archive voice.zip -DestinationPath sounds`)
 - Start the game: `python main.py`
 
-Python 3.11+ and pygame 2.6 are required.
+Python 3.8+ and pygame 2.6.1 are required. The release builds are made
+with Python 3.8 so the game still starts on older machines
+(Python 3.9+ needs Windows 8.1 or newer; the 3.8 build targets the
+older Windows / glibc generation). PyInstaller is pinned to 6.22.3.
 
 ## Build the Windows exe
 
@@ -45,21 +49,38 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed ^
 
 (The `^` is a PowerShell line continuation; drop it and keep it one line in cmd.)
 
+`profiles.py` is a plain module next to `main.py`, so PyInstaller picks it up
+automatically — no extra hidden-import flag is needed.
+
 ## Build macOS / Linux / deb / rpm
 
-Push a tag, for example `v1.4.1`. `.github/workflows/build.yml` then builds every
+Push a tag, for example `v1.5.0`. `.github/workflows/build.yml` then builds every
 platform and attaches the packages to that release automatically. Nothing is
 built locally for those platforms.
 
 ## Release checklist
 
 1. Bump the version in `version_info.txt` (`filevers`, `prodvers`, both strings).
-2. Update `release-notes.md` (English / 中文 / Русский sections).
-3. Mirror `release-notes.md` into `store/github_release_notes.md`.
-4. Upload changed files through the GitHub web UI.
-5. Tag `vX.Y.Z` and publish the release.
-6. Wait for the `build` workflow to finish, then check the six assets and the
+2. Bump the macOS `CFBundleShortVersionString` / `CFBundleVersion` in
+   `.github/workflows/build.yml`.
+3. Update `release-notes.md` (English / 中文 / Русский sections).
+4. Mirror `release-notes.md` into `store/github_release_notes.md`.
+5. Mirror `README.md` into `store/github_readme.md` and refresh the store text
+   files in `store/` if features changed.
+6. Upload changed files through the GitHub web UI.
+7. Tag `vX.Y.Z` and publish the release.
+8. Wait for the `build` workflow to finish, then check the six assets and the
    release body.
+
+## Profile data layout
+
+- `settings.json` — global (volume, language, fullscreen), shared by all profiles
+- `profiles.json` — list of profiles + which one is active
+- `profiles\<id>\` — per profile: `save_slot_1..5.json`, `achievements.json`,
+  `tutorial_seen.json`
+- `profiles.py` migrates the old loose files (`achievements.json`,
+  `tutorial_seen.json`, `save_slot_*.json`) from the user folder into the first
+  profile the first time a build with profiles starts.
 
 ## Platform notes
 
@@ -78,4 +99,4 @@ built locally for those platforms.
 Windows `%APPDATA%\A Slipery Climb`, macOS
 `~/Library/Application Support/A Slipery Climb`, Linux
 `~/.local/share/A Slipery Climb`. Deleting that folder resets settings,
-achievements and every save slot.
+profiles, achievements and every save slot.

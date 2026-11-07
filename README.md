@@ -9,7 +9,11 @@ ride the moving platforms up the mountain.
 
 ### [⬇ Download the latest release](../../releases/latest)
 
+**1.5.0 “SUMMIT” — the first official release.**
+
 ![gameplay](screenshots/gameplay.png)
+![the whole-mountain map in Free Climb](screenshots/freeclimb_map.png)
+![profiles](screenshots/profiles.png)
 
 ## Features
 
@@ -19,14 +23,21 @@ ride the moving platforms up the mountain.
 - Dotted trajectory preview while aiming: see where the candy will fly
 - **Easy mode with 8 checkpoints** (picked per new save) or the classic normal
   mode
+- **Free Climb** — clear the mountain once in Regular mode and the whole
+  climb becomes a sandbox: a map of the entire mountain, right-click to teleport anywhere,
+  achievements off, no saving
+- **Profiles** — several players on one computer, each with their own saves,
+  achievements, "cleared" status and Free Climb unlock
+- **Run timer** next to the Exit button, frozen on the victory screen
 - **Full voice-over in 9 languages** for idle chatter and fall taunts, with
   separate sound, music and voice volume sliders
 - **Fullscreen or windowed** display, with menus that scale to the window
 - 9 languages: English, русский, 中文, 日本語, 한국어, Deutsch, Français,
   Italiano, Español (fonts included)
 - Intro and victory cutscenes (skippable), idle chatter on the way up
-- Leveled achievements, 5 save slots
+- Leveled achievements, 5 save slots per profile
 - Clearing the mountain deletes that save slot, so every run starts fresh
+- Asking before quitting — no accidental Alt+F4
 
 ## Controls
 
@@ -36,6 +47,8 @@ ride the moving platforms up the mountain.
 | Alt | toggle the cursor while playing |
 | Esc | save and return to the menu |
 | Space / Enter | skip cutscene |
+| M | open / close the Free Climb map (Free Climb only) |
+| Right click on the map | teleport there (Free Climb only) |
 
 ## Download
 
@@ -72,7 +85,9 @@ No Python or pygame installation is needed: the builds are self-contained.
 | macOS | `~/Library/Application Support/A Slipery Climb` |
 | Linux | `~/.local/share/A Slipery Climb` |
 
-Remove that folder to reset settings, achievements and all saves.
+Settings live in that folder; every profile keeps its own saves, achievements
+and progress in `profiles\<id>\`. Remove the whole folder to reset everything
+(settings, achievements, profiles and all saves).
 
 ## 中文
 
@@ -84,9 +99,16 @@ Remove that folder to reset settings, achievements and all saves.
 - 手工关卡（Getting Over It 风格）：台阶、陡梯、下跳、渡船、电梯、弧线移动平台，
   还有一段会刮风的山脊
 - 瞄准时显示糖果飞行轨迹（虚线预览）
-- 9 种语言（含中文）
+- **简单模式 8 个检查点**，或经典常规模式（新建存档时选择）
+- **自由攀登**：常规模式通关一次后解锁——右上角全山地图，右键传送到任意位置，
+  不解锁成就、不占存档
+- **账号系统**：一台电脑多个玩家，各自独立的存档、成就、通关记录
+- **计时器**：左上角显示本趟用时，登顶停表
+- 9 种语言（含中文），全程配音，音效/音乐/语音音量分开调
+- 全屏或窗口模式，所有界面按窗口大小自适应
 - 开场 / 通关过场（可跳过）、随机闲聊、带等级的成就
-- 5 个存档位，通关会删掉该存档
+- 每个账号 5 个存档位，通关会删掉该存档
+- 退出游戏前会先确认
 
 **下载**：到 [Releases](../../releases/latest) 页面按系统选：
 Windows 下 `ASliperyClimb_Windows.zip`，解压后双击 `A Slipery Climb.exe`；
@@ -94,6 +116,7 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 
 存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
 `~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
+设置在该文件夹里，每个账号的数据在 `profiles\<id>\` 下。
 
 ## Русский
 
@@ -103,8 +126,15 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 
 - ручной уровень в духе Getting Over It: лестницы, прыжки вниз, паромы, лифты
   и ветреный гребень; при прицеливании видно траекторию конфеты
-- 9 языков, включая русский
-- катсцены (можно пропустить), достижения с уровнями, 5 слотов сохранения
+- **Лёгкий режим с 8 контрольными точками** или классический обычный режим
+- **Свободный подъём**: после первого прохождения в обычном режиме — карта всей горы и телепорт
+  правым кликом, достижения отключены, сохранений нет
+- **Профили**: несколько игроков на одном компьютере, у каждого свои сохранения,
+  достижения и прогресс
+- **Таймер**: время забега рядом с кнопкой выхода, останавливается на вершине
+- 9 языков, включая русский, полная озвучка; звук, музыка и голос — отдельно
+- катсцены (можно пропустить), достижения с уровнями, 5 слотов сохранения на профиль
+- перед выходом игра спрашивает подтверждение
 
 **Скачать**: на странице [Releases](../../releases/latest) — Windows
 (`ASliperyClimb_Windows.zip`), macOS (`ASliperyClimb_macOS.zip`), Linux
@@ -113,12 +143,14 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 
 Настройки и сохранения: Windows `%APPDATA%\A Slipery Climb`; macOS
 `~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
+Данные профилей лежат в `profiles\<id>\`.
 
 ![cutscene](screenshots/cutscene.png)
 
 ## Made with
 
-Pygame 2.6 and Python 3. This is a small solo project: the level is hand-built
+Built with Python 3.8 and Pygame 2.6 so older machines can still run
+it. This is a small solo project: the level is hand-built
 and all art, audio and voice lines are shipped inside the download.
 
 Building from source? See [BUILDING.md](BUILDING.md).

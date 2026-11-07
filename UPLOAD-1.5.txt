@@ -1,0 +1,97 @@
+A SLIPERY CLIMB — files to upload for release 1.5.0 "SUMMIT"
+=============================================================
+
+This is the FIRST OFFICIAL RELEASE. Everything before it (1.0 – 1.4.1) is
+marked as pre-release.
+
+UPLOAD / OVERWRITE (code + docs)
+--------------------------------
+main.py                 (Free Climb sandbox + whole-mountain map, profiles screen,
+                         run timer, quit confirmation, Esc/button/text fixes)
+achievements.py         (profile switching hooks + SANDBOX flag)
+flavor.py               (profile switching hook)
+i18n.py                 (18 new UI strings in 9 languages)
+profiles.py             (NEW FILE — local player profiles)
+version_info.txt        (1.5.0)
+release-notes.md        (1.5.0 notes: EN / 中文 / Русский)
+README.md               (1.5 features, Free Climb controls, profile data layout)
+BUILDING.md             (profiles.py, profile data layout, release checklist)
+requirements.txt        (pinned pygame 2.6.1 / PyInstaller 6.22.3, Python 3.8+)
+build.bat               (local Windows build: Python 3.8+)
+.github/workflows/build.yml   (macOS Info.plist 1.5.0, Python 3.8 builds)
+.gitignore              (ignore local profiles.json / profiles/)
+screenshots/freeclimb_map.png   (NEW, used by README)
+screenshots/profiles.png        (NEW, used by README)
+store/github_readme.md          (mirror of README.md)
+store/github_release_notes.md   (mirror of release-notes.md)
+store/description_en.txt
+store/description_zh.txt
+store/description_ru.txt
+store/README.txt
+store/announce_ru.txt
+store/shot_freeclimb.png        (NEW, store screenshot)
+store/shot_profiles.png         (NEW, store screenshot)
+UPLOAD-1.5.txt
+
+NOT NEEDED (unchanged)
+----------------------
+backdrop.py chatter.py paths.py
+voice.zip sounds/ textures/ fonts/ tutorial/ icons/ packaging/
+LICENSE.txt ART-AND-AUDIO.txt THIRD-PARTY-NOTICES.txt
+
+WHAT CHANGED
+------------
+1. Free Climb (new mode): clear the mountain once in Regular mode, then a button on the victory
+   screen and in the main menu opens the mountain as a sandbox. A map of the
+   whole climb sits in the top-right corner (click or M to expand), right-click
+   on it teleports the player to the nearest ledge. Achievements are disabled in
+   this mode, nothing is saved, and the summit air wall is off so you can jump
+   off. Also fixes: leaving the summit restores normal ice friction.
+2. Profiles (new accounts): each profile has its own 5 save slots, achievements,
+   cleared status and Free Climb unlock, in
+   %APPDATA%\A Slipery Climb\profiles\<id>\. Existing loose save/achievement
+   files are migrated into the first profile automatically. settings.json stays
+   global.
+3. Run timer: shown next to the Exit button, pauses while the Free Climb map is
+   open, stops at the summit, shown on the victory screen, stored in saves.
+4. Quit confirmation: menu Exit and the window close button ask first.
+5. Fixes: Esc returns to the menu from Saves / Settings / Profiles; all buttons
+   are blue again (in-game Exit, sliders, fullscreen toggle, language picker,
+   Free Climb buttons); "Back"/"Return" unified to "Back".
+6. Version bumps: version_info.txt and the macOS Info.plist in the workflow.
+
+TAG TO PUBLISH
+--------------
+v1.5.0
+
+RELEASE TITLE
+-------------
+A SLIPERY CLIMB · SUMMIT — 1.5.0 (first official release)
+
+RELEASE BODY
+------------
+Paste the contents of release-notes.md (already truncated to 1.5.0 notes).
+
+BEFORE TAGGING — mark every older release as pre-release
+--------------------------------------------------------
+On GitHub: Releases -> v1.4.1 .. v1.0.0 -> Edit -> tick "Set as a pre-release"
+-> Update release. Do this for all five older tags so 1.5.0 is the first
+official release.
+
+AFTER THE TAG — CHECK THE RELEASE
+---------------------------------
+ASliperyClimb_Windows.zip
+ASliperyClimb_macOS.zip
+ASliperyClimb_Linux.tar.gz
+ASliperyClimb_Linux_amd64.deb
+ASliperyClimb_Linux_x86_64.rpm
+SHA256SUMS.txt
+
+Checks:
+- Windows exe properties -> Details -> FileVersion / ProductVersion 1.5.0
+- macOS CFBundleShortVersionString -> 1.5.0
+- Start a run, clear the summit once, then use the Free Climb button and
+  right-click teleport on the map
+- Profiles: create a second profile, check its saves/achievements are separate
+- Timer shows next to Exit, pauses with the map open
+- Exit asks "Quit the game?"

@@ -17,6 +17,40 @@ import paths
 FILE = paths.user("achievements.json")
 PX_PER_M = 100
 
+# Free Climb (sandbox) mode: the mountain can be entered from any point, so
+# nothing done there may count towards achievements. main.py flips this flag.
+SANDBOX = False
+
+
+def set_sandbox(enabled):
+    """Turn the sandbox on/off for Free Climb mode."""
+    global SANDBOX
+    SANDBOX = bool(enabled)
+    if SANDBOX:
+        NOTIFY.clear()
+
+
+# A modal dialog (the quit confirmation) pauses the game loop; main.py installs
+# a checker here so nothing can be unlocked while the game is frozen.
+PAUSE_CHECK = None
+
+
+def set_pause_check(fn):
+    """Install a callable telling whether gameplay is currently frozen."""
+    global PAUSE_CHECK
+    PAUSE_CHECK = fn
+
+
+def _frozen():
+    if SANDBOX:
+        return True
+    if PAUSE_CHECK is not None:
+        try:
+            return bool(PAUSE_CHECK())
+        except Exception:
+            return False
+    return False
+
 # Five tiers for every normal achievement (exactly five -> one per rank).
 TIERS = {
     "height": [1000, 3000, 8000, 13900, 18000],       # px climbed
@@ -368,6 +402,8 @@ L = {
 # per-run counters; max_height / clears are lifetime
 state = {
     "clears": 0, "max_height": 0,
+    "normal_clears": 0,   # clears finished in the Regular mode (unlocks Free Climb)
+    "rule_clears": False,  # some clear was recorded after the Regular-mode rule
     "candies": 0, "air_throws": 0, "chains": 0, "air_time": 0.0,
     "idle": 0.0, "selfhit": 0.0, "streak": 0.0, "platforms": 0,
     "fails": 0,
@@ -380,6 +416,28 @@ _loaded = False
 _last_explosion_time = 0.0
 _chain_combo = 0
 
+_STATE_DEFAULTS = {key: (dict(value) if isinstance(value, dict) else value)
+                   for key, value in state.items()}
+
+
+def reset_state():
+    """Forget the loaded data (used when switching player profiles)."""
+    global _loaded, _last_explosion_time, _chain_combo
+    state.clear()
+    state.update({key: (dict(value) if isinstance(value, dict) else value)
+                  for key, value in _STATE_DEFAULTS.items()})
+    NOTIFY.clear()
+    _loaded = False
+    _last_explosion_time = 0.0
+    _chain_combo = 0
+
+
+def set_profile_file(path):
+    """Point the achievement store at another file (player-profile switch)."""
+    global FILE
+    FILE = path
+    reset_state()
+
 
 def _ensure():
     global _loaded
@@ -391,6 +449,8 @@ def _ensure():
             with open(FILE, "r", encoding="utf-8") as f:
                 d = json.load(f)
             state["clears"] = int(d.get("clears", 0))
+            state["normal_clears"] = int(d.get("normal_clears", 0))
+            state["rule_clears"] = bool(d.get("rule_clears", False))
             state["max_height"] = int(d.get("max_height", 0))
             unlocked = d.get("unlocked", {})
             if isinstance(unlocked, dict):
@@ -405,6 +465,8 @@ def _ensure():
 
 def _save():
     data = {"clears": state["clears"], "max_height": state["max_height"],
+            "normal_clears": state["normal_clears"],
+            "rule_clears": state["rule_clears"],
             "unlocked": state["unlocked"], "best": state["best"]}
     tmp = FILE + ".tmp"
     try:
@@ -458,6 +520,8 @@ def _bump(key, kind):
 
 # ---------------------------------------------------------------- lifetime
 def update_height(h):
+    if _frozen():
+        return
     _ensure()
     h = int(h)
     if h <= state["max_height"]:
@@ -471,10 +535,16 @@ def update_height(h):
         _save()
 
 
-def add_clear():
+def add_clear(mode="normal"):
+    """Record a finished run. Only Regular-mode clears unlock Free Climb."""
     _ensure()
+    if _frozen():
+        return state["clears"]
     before = _level(state["clears"], TIERS["clears"])
     state["clears"] += 1
+    if mode == "normal":
+        state["normal_clears"] += 1
+    state["rule_clears"] = True
     after = _level(state["clears"], TIERS["clears"])
     _notify("clears", TIERS["clears"], before, after)
     _save()
@@ -483,11 +553,15 @@ def add_clear():
 
 # ---------------------------------------------------------------- per run
 def add_candy():
+    if _frozen():
+        return
     _ensure()
     _bump("candies", "candy")
 
 
 def add_air_throw():
+    if _frozen():
+        return
     _ensure()
     _bump("air_throws", "air")
 
@@ -495,6 +569,8 @@ def add_air_throw():
 def add_chain():
     """Explosions closer together than CHAIN_WINDOW build a combo; a gap
     longer than that breaks it and the combo starts again from 1."""
+    if _frozen():
+        return
     global _last_explosion_time, _chain_combo
     _ensure()
     now = time.time()
@@ -510,6 +586,8 @@ def add_chain():
 
 
 def add_air_time(dt):
+    if _frozen():
+        return
     _ensure()
     state["air_time"] += max(0.0, dt)
     old_best = state["best"].get("sky", 0.0)
@@ -523,6 +601,8 @@ def add_air_time(dt):
 
 
 def add_idle(dt):
+    if _frozen():
+        return
     _ensure()
     before = state["idle"]
     state["idle"] += max(0.0, dt)
@@ -538,6 +618,8 @@ def reset_idle():
 
 def update_selfhit(age_seconds):
     """Your own old candy (thrown >= threshold seconds ago) blasted you."""
+    if _frozen():
+        return
     _ensure()
     age_seconds = float(age_seconds)
     if age_seconds < HIDDEN_TIERS["selfhit"]:
@@ -549,6 +631,8 @@ def update_selfhit(age_seconds):
 
 
 def update_streak(seconds):
+    if _frozen():
+        return
     _ensure()
     seconds = float(seconds)
     if seconds <= state["streak"]:
@@ -560,6 +644,8 @@ def update_streak(seconds):
 
 def update_fails(count):
     """Falls at the same spot (per run)."""
+    if _frozen():
+        return
     _ensure()
     count = int(count)
     if count <= state["fails"]:
@@ -571,6 +657,8 @@ def update_fails(count):
 
 def update_platforms(count):
     """Different platforms the player has stood on this run."""
+    if _frozen():
+        return
     _ensure()
     count = int(count)
     if count <= state["platforms"]:
@@ -612,6 +700,24 @@ def reset_run():
 def clears():
     _ensure()
     return state["clears"]
+
+
+def normal_clears():
+    """Finished runs that were played in the Regular mode."""
+    _ensure()
+    return state["normal_clears"]
+
+
+def free_climb_rule_unlocked():
+    """Free Climb needs a Regular-mode clear (Easy-mode clears do not count)."""
+    _ensure()
+    return state["normal_clears"] >= 1
+
+
+def free_climb_first_clear():
+    """True while this profile's Free Climb unlock is still brand-new."""
+    _ensure()
+    return state["normal_clears"] == 1
 
 
 def max_height():

@@ -117,6 +117,16 @@ def _load_seen():
         _seen = set()
 
 
+def set_seen_file(path):
+    """Point the tutorial memory at another file (player-profile switch)."""
+    global SEEN_FILE, _seen, _on_screen_time
+    SEEN_FILE = path
+    _seen = set()
+    _on_screen_time = {}
+    _load_seen()
+    _apply_hidden()
+
+
 def _save_seen():
     try:
         with open(SEEN_FILE, "w", encoding="utf-8") as f:

@@ -1188,3 +1188,359 @@ _VOICE = {
 }
 for _code, _txt in _VOICE.items():
     STRINGS[_code]["voice"] = _txt
+
+
+# Free Climb (sandbox) mode + whole-mountain map
+UI_EN["free_climb"] = "Free Climb"
+UI_EN["free_climb_tag"] = "Free Climb · achievements are off"
+UI_EN["free_climb_welcome"] = ("Click the map in the top-right corner (or press M) "
+                               "to open the whole mountain, then right-click on it "
+                               "to teleport anywhere. Achievements are off in this "
+                               "mode.")
+UI_EN["map_title"] = "The Mountain"
+UI_EN["map_hint"] = "Right-click: teleport · Left-click / Esc: close"
+_FREE_CLIMB = {
+    "zh": {
+        "free_climb": "自由攀登",
+        "free_climb_tag": "自由攀登 · 不解锁成就",
+        "free_climb_welcome": "点击右上角小地图（或按 M）展开整座雪山，"
+                              "右键即可传送到任意位置。本模式不解锁成就。",
+        "map_title": "雪山全图",
+        "map_hint": "右键：传送 · 左键 / Esc：关闭",
+    },
+    "ja": {
+        "free_climb": "フリークライム",
+        "free_climb_tag": "フリークライム・実績なし",
+        "free_climb_welcome": "右上のミニマップ（または M キー）で山の全体図を開き、"
+                              "右クリックで好きな場所へテレポートできます。"
+                              "このモードでは実績は解除されません。",
+        "map_title": "山の全体図",
+        "map_hint": "右クリック：テレポート ／ 左クリック・Esc：閉じる",
+    },
+    "ko": {
+        "free_climb": "자유 등반",
+        "free_climb_tag": "자유 등반 · 업적 없음",
+        "free_climb_welcome": "오른쪽 위 미니맵(또는 M 키)으로 산 전체 지도를 열고, "
+                              "오른쪽 클릭으로 원하는 곳으로 이동하세요. "
+                              "이 모드에서는 업적이 해제되지 않습니다.",
+        "map_title": "산 전체 지도",
+        "map_hint": "오른쪽 클릭: 이동 · 왼쪽 클릭 / Esc: 닫기",
+    },
+    "ru": {
+        "free_climb": "Свободный подъём",
+        "free_climb_tag": "Свободный подъём · без достижений",
+        "free_climb_welcome": "Нажми на мини-карту справа сверху (или клавишу M), "
+                              "чтобы открыть всю гору, и щёлкни правой кнопкой, "
+                              "чтобы перенестись куда угодно. В этом режиме "
+                              "достижения не открываются.",
+        "map_title": "Вся гора",
+        "map_hint": "Правый клик: телепорт · Левый клик / Esc: закрыть",
+    },
+    "de": {
+        "free_climb": "Frei klettern",
+        "free_climb_tag": "Frei klettern · keine Erfolge",
+        "free_climb_welcome": "Klicke rechts oben auf die Minikarte (oder drücke M), "
+                              "um den ganzen Berg zu öffnen, und teleportiere dich "
+                              "mit Rechtsklick überallhin. In diesem Modus gibt es "
+                              "keine Erfolge.",
+        "map_title": "Der ganze Berg",
+        "map_hint": "Rechtsklick: Teleport · Linksklick / Esc: schließen",
+    },
+    "fr": {
+        "free_climb": "Ascension libre",
+        "free_climb_tag": "Ascension libre · sans succès",
+        "free_climb_welcome": "Clique sur la mini-carte en haut à droite (ou touche M) "
+                              "pour ouvrir la montagne entière, puis fais un clic droit "
+                              "pour te téléporter où tu veux. Dans ce mode, les succès "
+                              "sont désactivés.",
+        "map_title": "La montagne entière",
+        "map_hint": "Clic droit : téléportation · Clic gauche / Échap : fermer",
+    },
+    "it": {
+        "free_climb": "Scalata libera",
+        "free_climb_tag": "Scalata libera · nessun obiettivo",
+        "free_climb_welcome": "Clicca la mini-mappa in alto a destra (o premi M) per "
+                              "aprire la montagna intera, poi clicca col tasto destro "
+                              "per teletrasportarti dove vuoi. In questa modalità gli "
+                              "obiettivi sono disattivati.",
+        "map_title": "La montagna intera",
+        "map_hint": "Tasto destro: teletrasporto · Tasto sinistro / Esc: chiudi",
+    },
+    "es": {
+        "free_climb": "Escalada libre",
+        "free_climb_tag": "Escalada libre · sin logros",
+        "free_climb_welcome": "Haz clic en el minimapa de arriba a la derecha (o pulsa M) "
+                              "para abrir la montaña entera y luego clic derecho para "
+                              "teletransportarte a donde quieras. En este modo los logros "
+                              "están desactivados.",
+        "map_title": "La montaña entera",
+        "map_hint": "Clic derecho: teletransporte · Clic izquierdo / Esc: cerrar",
+    },
+}
+for _code, _kv in _FREE_CLIMB.items():
+    STRINGS[_code].update(_kv)
+
+
+# Player profiles, run timer and quit confirmation
+UI_EN["profiles"] = "Profiles"
+UI_EN["profile_word"] = "Player"
+UI_EN["profile_current"] = "Current"
+UI_EN["profile_new"] = "New profile"
+UI_EN["profile_rename"] = "Rename"
+UI_EN["profile_cleared"] = "Cleared"
+UI_EN["profile_not_cleared"] = "Not cleared"
+UI_EN["profile_best"] = "Best {m} m"
+UI_EN["profile_hint"] = "Click a profile to switch to it."
+UI_EN["profile_name_title"] = "Profile name"
+UI_EN["profile_name_hint"] = "Type a name · Enter to confirm · Esc to cancel"
+UI_EN["profile_delete_title"] = "Delete profile: {n}"
+UI_EN["profile_delete_hint"] = "Its saves, achievements and progress will be deleted."
+UI_EN["profile_last_error"] = "Keep at least one profile."
+UI_EN["ok"] = "OK"
+UI_EN["exit_confirm"] = "Quit the game?"
+UI_EN["exit_confirm_hint"] = "Your progress will be saved."
+UI_EN["time"] = "Time"
+_PROFILE_UI = {
+    "zh": {
+        "profiles": "账号",
+        "profile_word": "玩家",
+        "profile_current": "当前",
+        "profile_new": "新建账号",
+        "profile_rename": "重命名",
+        "profile_cleared": "已通关",
+        "profile_not_cleared": "未通关",
+        "profile_best": "最高 {m} 米",
+        "profile_hint": "点击账号即可切换。",
+        "profile_name_title": "账号名称",
+        "profile_name_hint": "输入名字 · 回车确认 · Esc 取消",
+        "profile_delete_title": "删除账号：{n}",
+        "profile_delete_hint": "该账号的存档、成就和进度都会被删除。",
+        "profile_last_error": "至少要保留一个账号。",
+        "ok": "确定",
+        "exit_confirm": "确定退出游戏吗？",
+        "exit_confirm_hint": "进度会自动保存。",
+        "time": "用时",
+    },
+    "ja": {
+        "profiles": "アカウント",
+        "profile_word": "プレイヤー",
+        "profile_current": "使用中",
+        "profile_new": "新しいアカウント",
+        "profile_rename": "名前を変更",
+        "profile_cleared": "クリア済み",
+        "profile_not_cleared": "未クリア",
+        "profile_best": "最高 {m} m",
+        "profile_hint": "アカウントをクリックすると切り替わります。",
+        "profile_name_title": "アカウント名",
+        "profile_name_hint": "名前を入力 · Enter で決定 · Esc でキャンセル",
+        "profile_delete_title": "アカウントを削除：{n}",
+        "profile_delete_hint": "このアカウントのセーブ、実績、進行状況はすべて削除されます。",
+        "profile_last_error": "アカウントは最低 1 つ必要です。",
+        "ok": "OK",
+        "exit_confirm": "ゲームを終了しますか？",
+        "exit_confirm_hint": "進行状況は自動で保存されます。",
+        "time": "タイム",
+    },
+    "ko": {
+        "profiles": "계정",
+        "profile_word": "플레이어",
+        "profile_current": "사용 중",
+        "profile_new": "새 계정",
+        "profile_rename": "이름 변경",
+        "profile_cleared": "클리어",
+        "profile_not_cleared": "미클리어",
+        "profile_best": "최고 {m} m",
+        "profile_hint": "계정을 클릭하면 전환됩니다.",
+        "profile_name_title": "계정 이름",
+        "profile_name_hint": "이름 입력 · Enter로 확인 · Esc로 취소",
+        "profile_delete_title": "계정 삭제: {n}",
+        "profile_delete_hint": "이 계정의 저장, 업적, 진행 상황이 모두 삭제됩니다.",
+        "profile_last_error": "계정은 최소 하나는 남겨 두세요.",
+        "ok": "확인",
+        "exit_confirm": "게임을 종료할까요?",
+        "exit_confirm_hint": "진행 상황은 자동으로 저장됩니다.",
+        "time": "시간",
+    },
+    "ru": {
+        "profiles": "Профили",
+        "profile_word": "Игрок",
+        "profile_current": "Текущий",
+        "profile_new": "Новый профиль",
+        "profile_rename": "Переименовать",
+        "profile_cleared": "Пройдено",
+        "profile_not_cleared": "Не пройдено",
+        "profile_best": "Рекорд {m} м",
+        "profile_hint": "Нажми на профиль, чтобы переключиться на него.",
+        "profile_name_title": "Имя профиля",
+        "profile_name_hint": "Введи имя · Enter — подтвердить · Esc — отмена",
+        "profile_delete_title": "Удалить профиль: {n}",
+        "profile_delete_hint": "Его сохранения, достижения и прогресс будут удалены.",
+        "profile_last_error": "Должен остаться хотя бы один профиль.",
+        "ok": "ОК",
+        "exit_confirm": "Выйти из игры?",
+        "exit_confirm_hint": "Прогресс сохранится автоматически.",
+        "time": "Время",
+    },
+    "de": {
+        "profiles": "Profile",
+        "profile_word": "Spieler",
+        "profile_current": "Aktiv",
+        "profile_new": "Neues Profil",
+        "profile_rename": "Umbenennen",
+        "profile_cleared": "Geschafft",
+        "profile_not_cleared": "Nicht geschafft",
+        "profile_best": "Rekord {m} m",
+        "profile_hint": "Klicke auf ein Profil, um zu wechseln.",
+        "profile_name_title": "Profilname",
+        "profile_name_hint": "Namen eingeben · Enter bestätigt · Esc bricht ab",
+        "profile_delete_title": "Profil löschen: {n}",
+        "profile_delete_hint": "Seine Spielstände, Erfolge und Fortschritte werden gelöscht.",
+        "profile_last_error": "Mindestens ein Profil muss bleiben.",
+        "ok": "OK",
+        "exit_confirm": "Spiel beenden?",
+        "exit_confirm_hint": "Dein Fortschritt wird automatisch gespeichert.",
+        "time": "Zeit",
+    },
+    "fr": {
+        "profiles": "Profils",
+        "profile_word": "Joueur",
+        "profile_current": "Actuel",
+        "profile_new": "Nouveau profil",
+        "profile_rename": "Renommer",
+        "profile_cleared": "Terminé",
+        "profile_not_cleared": "Pas terminé",
+        "profile_best": "Record {m} m",
+        "profile_hint": "Clique sur un profil pour basculer dessus.",
+        "profile_name_title": "Nom du profil",
+        "profile_name_hint": "Tape un nom · Entrée pour valider · Échap pour annuler",
+        "profile_delete_title": "Supprimer le profil : {n}",
+        "profile_delete_hint": "Ses sauvegardes, succès et progrès seront supprimés.",
+        "profile_last_error": "Garde au moins un profil.",
+        "ok": "OK",
+        "exit_confirm": "Quitter le jeu ?",
+        "exit_confirm_hint": "Ta progression sera sauvegardée automatiquement.",
+        "time": "Temps",
+    },
+    "it": {
+        "profiles": "Profili",
+        "profile_word": "Giocatore",
+        "profile_current": "Attuale",
+        "profile_new": "Nuovo profilo",
+        "profile_rename": "Rinomina",
+        "profile_cleared": "Completato",
+        "profile_not_cleared": "Non completato",
+        "profile_best": "Record {m} m",
+        "profile_hint": "Clicca un profilo per passare a quello.",
+        "profile_name_title": "Nome del profilo",
+        "profile_name_hint": "Scrivi un nome · Invio per confermare · Esc per annullare",
+        "profile_delete_title": "Elimina profilo: {n}",
+        "profile_delete_hint": "I suoi salvataggi, obiettivi e progressi saranno eliminati.",
+        "profile_last_error": "Tieni almeno un profilo.",
+        "ok": "OK",
+        "exit_confirm": "Uscire dal gioco?",
+        "exit_confirm_hint": "I tuoi progressi verranno salvati automaticamente.",
+        "time": "Tempo",
+    },
+    "es": {
+        "profiles": "Perfiles",
+        "profile_word": "Jugador",
+        "profile_current": "Actual",
+        "profile_new": "Nuevo perfil",
+        "profile_rename": "Renombrar",
+        "profile_cleared": "Completado",
+        "profile_not_cleared": "Sin completar",
+        "profile_best": "Récord {m} m",
+        "profile_hint": "Haz clic en un perfil para cambiar a él.",
+        "profile_name_title": "Nombre del perfil",
+        "profile_name_hint": "Escribe un nombre · Intro para confirmar · Esc para cancelar",
+        "profile_delete_title": "Eliminar perfil: {n}",
+        "profile_delete_hint": "Se borrarán sus partidas, logros y progreso.",
+        "profile_last_error": "Debes conservar al menos un perfil.",
+        "ok": "OK",
+        "exit_confirm": "¿Salir del juego?",
+        "exit_confirm_hint": "Tu progreso se guardará automáticamente.",
+        "time": "Tiempo",
+    },
+}
+for _code, _kv in _PROFILE_UI.items():
+    STRINGS[_code].update(_kv)
+
+
+# First clear of a profile: explain the Free Climb mode it just unlocked
+UI_EN["free_climb_unlock_title"] = "Free Climb unlocked"
+UI_EN["free_climb_unlock_hint"] = ("The button below opens the whole mountain: "
+                                   "right-click on the map to teleport anywhere. "
+                                   "Achievements are off in this mode and nothing "
+                                   "is saved.")
+_FREE_CLIMB_INTRO = {
+    "zh": {
+        "free_climb_unlock_title": "自由攀登已解锁",
+        "free_climb_unlock_hint": "点下面的按钮就能进整座雪山：在全山地图上右键"
+                                  "可以传送到任意位置。这个模式不解锁成就，"
+                                  "也不会存档。",
+    },
+    "ja": {
+        "free_climb_unlock_title": "フリークライム解放",
+        "free_climb_unlock_hint": "下のボタンで山全体を開けます：マップ上で"
+                                  "右クリックすると好きな場所へテレポートできます。"
+                                  "このモードでは実績は解除されず、セーブもされません。",
+    },
+    "ko": {
+        "free_climb_unlock_title": "자유 등반 해금",
+        "free_climb_unlock_hint": "아래 버튼으로 산 전체를 열 수 있습니다: 지도에서 "
+                                  "오른쪽 클릭하면 원하는 곳으로 이동합니다. 이 모드에서는 "
+                                  "업적이 해제되지 않고 저장도 되지 않습니다.",
+    },
+    "ru": {
+        "free_climb_unlock_title": "Свободный подъём открыт",
+        "free_climb_unlock_hint": "Кнопка ниже открывает всю гору: правый клик по "
+                                  "карте — телепорт куда угодно. В этом режиме "
+                                  "достижения не открываются и ничего не сохраняется.",
+    },
+    "de": {
+        "free_climb_unlock_title": "Frei klettern freigeschaltet",
+        "free_climb_unlock_hint": "Die Taste unten öffnet den ganzen Berg: Rechtsklick "
+                                  "auf der Karte teleportiert dich überallhin. In diesem "
+                                  "Modus gibt es keine Erfolge und nichts wird gespeichert.",
+    },
+    "fr": {
+        "free_climb_unlock_title": "Ascension libre débloquée",
+        "free_climb_unlock_hint": "Le bouton ci-dessous ouvre la montagne entière : un "
+                                  "clic droit sur la carte te téléporte où tu veux. Dans "
+                                  "ce mode, les succès sont désactivés et rien n'est sauvegardé.",
+    },
+    "it": {
+        "free_climb_unlock_title": "Scalata libera sbloccata",
+        "free_climb_unlock_hint": "Il pulsante qui sotto apre la montagna intera: clic "
+                                  "destro sulla mappa per teletrasportarti dove vuoi. In "
+                                  "questa modalità gli obiettivi sono disattivati e non "
+                                  "viene salvato nulla.",
+    },
+    "es": {
+        "free_climb_unlock_title": "Escalada libre desbloqueada",
+        "free_climb_unlock_hint": "El botón de abajo abre la montaña entera: clic derecho "
+                                  "en el mapa para teletransportarte a donde quieras. En "
+                                  "este modo los logros están desactivados y no se guarda nada.",
+    },
+}
+for _code, _kv in _FREE_CLIMB_INTRO.items():
+    STRINGS[_code].update(_kv)
+
+
+# Profile name editor: clipboard fallback when the IME candidate window is hidden
+UI_EN["profile_paste_hint"] = ("IME candidates not showing? Press Ctrl+V to paste "
+                               "a name you typed elsewhere.")
+_PROFILE_PASTE = {
+    "zh": "看不到输入法候选？可以按 Ctrl+V 粘贴别处打好的名字。",
+    "ja": "IME の候補が出ないときは、Ctrl+V で別の場所で打った名前を貼り付けられます。",
+    "ko": "IME 후보가 보이지 않으면 Ctrl+V로 다른 곳에서 입력한 이름을 붙여넣으세요.",
+    "ru": "Не видно подсказок IME? Нажми Ctrl+V, чтобы вставить имя, набранное в другом месте.",
+    "de": "Keine IME-Vorschläge? Mit Strg+V einen anderswo getippten Namen einfügen.",
+    "fr": "Pas de suggestions IME ? Appuie sur Ctrl+V pour coller un nom tapé ailleurs.",
+    "it": "Nessun suggerimento IME? Premi Ctrl+V per incollare un nome scritto altrove.",
+    "es": "¿No ves las sugerencias del IME? Pulsa Ctrl+V para pegar un nombre escrito en otro sitio.",
+}
+for _code, _txt in _PROFILE_PASTE.items():
+    STRINGS[_code]["profile_paste_hint"] = _txt
+
+

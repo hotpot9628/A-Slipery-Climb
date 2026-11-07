@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM  Build a standalone Windows exe for "A SLIPERY CLIMB".
-REM  Requirements: Python 3.11+ on PATH (pygame / PyInstaller
+REM  Requirements: Python 3.8+ on PATH (pygame / PyInstaller
 REM  are installed automatically). Just double-click this file.
 REM ============================================================
 cd /d "%~dp0"
@@ -18,7 +18,7 @@ if not exist "sounds\voice\en\line_00.mp3" (
 )
 
 echo [2/3] Installing build tools...
-python -m pip install --upgrade "pyinstaller>=6.0" pygame || goto :error
+python -m pip install --upgrade "pygame==2.6.1" "pyinstaller==6.22.3" || goto :error
 
 echo [3/3] Building exe...
 python -m PyInstaller --noconfirm --clean --onefile --windowed ^

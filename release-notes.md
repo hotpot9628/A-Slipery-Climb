@@ -1,224 +1,186 @@
-# A SLIPERY CLIMB 1.4.1
+# A SLIPERY CLIMB · SUMMIT — 1.5.0
 
-A small, slippery climbing game about a Santa who has to get up a very big
-mountain to deliver presents. There is no walk button: you move by throwing
-candy and letting the explosions push you around.
+**The first official release.** Versions 1.0 – 1.4.1 were preview builds; this
+one is the real thing. Everything below is new since 1.4.1.
 
-Available for **Windows, macOS and Linux**.
+## New in 1.5
 
-## What's fixed in 1.4.1
+### Free Climb (after the first Regular-mode clear)
+Clear the mountain once in **Regular** mode and an extra button appears on the
+victory screen and in the main menu. An Easy-mode clear does not count. It opens
+the whole mountain as a sandbox:
 
-- **Linux builds now run on older distributions.** The Linux packages are
-  built inside an Ubuntu 20.04 container, so they no longer need a very new
-  glibc and should start on older distros again.
-- **Linux fullscreen covers the whole screen.** In fullscreen mode the
-  taskbar used to stay visible on top of the game (the same problem macOS
-  had); Linux now uses real fullscreen like macOS, so the taskbar is hidden.
-- Windows and macOS builds are unchanged apart from the version number.
+- a map of the entire climb sits in the top-right corner — click it (or press
+  **M**) to expand it
+- **right-click** anywhere on the expanded map to teleport there; the game picks
+  the nearest ledge and drops you on it
+- achievements are disabled in this mode, and the summit no longer traps you:
+  jump off whenever you want
+- nothing is saved — it is a sandbox, not a save slot
+- the first clear of every profile explains the new mode right on the victory
+  screen
 
-## What's new in 1.4
+### Profiles (accounts)
+One computer, several players: each profile gets its own five save slots, its own
+achievements, its own "cleared" status and its own Free Climb unlock. Create,
+rename and delete profiles on the new **Profiles** screen. Your existing saves
+and achievements are moved into the first profile automatically, so nothing is
+lost.
 
-- **Easy mode with 8 checkpoints.** When you create a new save the game asks how
-  you want to climb. In **Easy** mode every checkpoint platform carries a flag:
-  touch it and it turns from red to green with a little sparkle and a "ding",
-  and the save remembers that checkpoint. If you fall, the screen fades and you
-  are back at the last checkpoint you touched. **Normal** mode has no
-  checkpoints and plays exactly like before.
-- **Checkpoints on the climb progress bar.** Reached checkpoints are green
-  diamonds on the left edge, the ones ahead are red, and a pulsing arrow points
-  at the next one when you get close. The Easy HUD also shows `Checkpoint n/8`.
-- **Fullscreen / window mode.** Settings now has a **Fullscreen** switch:
-  on = fullscreen (borderless window on Windows, real fullscreen on
-  macOS/Linux), off = a normal window. It takes effect after a
-  game restart (the menu tells you), and every screen and menu scales to the
-  window.
-- **Voices in 9 languages.** Santa's idle chatter and the two taunts he says
-  after a big fall are now spoken out loud in all nine languages. Settings has
-  a new **Voice** slider next to Sound and Music, with its own volume.
-- **Alt now toggles the cursor** instead of requiring you to hold it.
-- **Moving platforms feel right.** Landing on a ferry or elevator now hands your
-  momentum over to the platform properly (no more platform speed stacking onto
-  your own, and no sudden stop), leaving one gives the platform's momentum back,
-  and the camera rides along with the platform.
-- **Windy ridge reworked.** The wind pushes in three fixed bands with diagonal
-  snow streaks and a smooth fade in/out, so it is clear where it starts and ends.
-- **Smaller things:** updated tutorial text for the new cursor behaviour, save
-  slots show whether a run is Easy or Normal, and the Windows/macOS builds
-  report version 1.4.0.
+### Run timer
+The current run time is shown next to the Exit button. It pauses while the
+Free Climb map is open, stops when you reach the summit, and is shown on the
+victory screen. Saved runs keep their time.
 
-## Download
+### Quit confirmation
+Closing the window or pressing **Exit** asks "Quit the game?" first.
 
-| OS | File | Notes |
-|---|---|---|
-| 🪟 **Windows** | `ASliperyClimb_Windows.zip` | unpack and run `A Slipery Climb.exe` |
-| 🍎 **macOS** | `ASliperyClimb_macOS.zip` | unpack and open `A Slipery Climb.app` (Apple Silicon) |
-| 🐧 **Linux** | `ASliperyClimb_Linux.tar.gz` | unpack, then run `A Slipery Climb/A Slipery Climb` |
-| 🐧 **Debian / Ubuntu / Astra** | `ASliperyClimb_Linux_amd64.deb` | `sudo apt install ./ASliperyClimb_Linux_amd64.deb` |
-| 🐧 **Fedora / RHEL / openSUSE / ALT** | `ASliperyClimb_Linux_x86_64.rpm` | `sudo dnf install ./ASliperyClimb_Linux_x86_64.rpm` |
+## Fixed in 1.5
 
-No installation of Python or pygame is needed — every build is self-contained.
-`SHA256SUMS.txt` lets you verify the downloads.
+- **Esc** now returns to the menu from the Saves, Settings and Profiles screens
+- **Back / Return** wording unified — every screen says **Back** now
+- one button style everywhere: buttons are blue again, including the in-game
+  Exit button, the slider +/− buttons, the fullscreen toggle, the language
+  picker and the new Free Climb buttons
+- every button now has rounded corners
+- **Free Climb:** leaving the summit restores the normal ice friction, and the
+  summit's invisible wall is off in that mode
+- **Free Climb:** the minimap and the welcome banner explain the map and that
+  achievements are off
+- **Free Climb:** reaching the summit no longer switches to the Jingle Bells
+  summit theme (that stays for the real climb)
+- **Free Climb:** the map teleport can now reach the final summit platform too
+- the quit dialog pauses the whole game while it is open
+- profile names can be typed with any input method (Chinese, Japanese,
+  Korean); the IME composition is shown in the field
+- the name box is bigger and counts characters, **Ctrl+V** pastes a name
+  typed elsewhere, and Enter no longer submits while the IME is composing
+- Korean profile names now render correctly (the CJK font has no Hangul
+  glyphs), and symbols the fonts cannot draw are filtered out
+- corrupted or hand-edited save / profile files can no longer crash the game
+- the game is now built with **Python 3.8**, so it also runs on older
+  machines and older Linux distributions
 
-### First launch
-
-- **Windows**: *"Windows protected your PC"* → **More info → Run anyway**
-  (the exe is not code-signed).
-- **macOS**: if macOS says it cannot verify the app, open
-  **System Settings → Privacy & Security**, scroll to *Security* and click
-  **Open Anyway** (macOS 15+), or run
-  `xattr -dr com.apple.quarantine "A Slipery Climb.app"` once in Terminal
-  (the app is not notarized). The current build is Apple Silicon only.
-- **Linux**: `chmod +x "A Slipery Climb/A Slipery Climb"` if needed.
-
-## What's in the game
-
-- Hand-made level in the spirit of *Getting Over It*: stairs, steep ladders,
-  drop jumps, ferries, elevators, curved moving platforms and a windy ridge
-- Candy-bomb movement: throw backwards to slide forwards, blast-jump, ride
-  platforms; a dotted trajectory preview while aiming
-- **Easy mode with 8 checkpoints** (chosen when you create a new save)
-- **Full voice-over in 9 languages** for idle chatter and fall taunts, with
-  separate sound, music and voice volume sliders
-- **Fullscreen or window mode**
-- 9 languages: English, Русский, 中文, 日本語, 한국어, Deutsch, Français,
-  Italiano, Español (fonts included)
-- Intro / victory cutscenes, idle chatter, a tutorial page, 5-rank achievements
-  with on-screen popups, 5 save slots
-- Clearing the mountain deletes that save slot
-
-## Controls
-
-| Input | Action |
-|---|---|
-| Mouse | aim and throw candy |
-| Alt | toggle the cursor while playing |
-| Esc | save and return to the menu |
-| Space / Enter | skip the intro cutscene |
-
-## Notes
-
-Settings, achievements and saves are stored in:
-
-- Windows: `%APPDATA%\A Slipery Climb`
-- macOS: `~/Library/Application Support/A Slipery Climb`
-- Linux: `~/.local/share/A Slipery Climb`
+*1.0 – 1.4.1 stay available in Releases and are now marked as pre-release.*
 
 ---
 
-# A SLIPERY CLIMB 1.4.1 — 中文
+# A SLIPERY CLIMB · SUMMIT — 1.5.0 — 中文
 
-一个关于圣诞老人的小游戏：他要爬上很高的山，把礼物送到山顶的小屋。没有“走”键，
-只能靠扔糖果、借爆炸反冲往上爬。
+**首个正式版本。** 1.0 – 1.4.1 都是预览版，这一版才是正式发布。以下都是 1.4.1
+之后的新内容。
 
-提供 **Windows、macOS 和 Linux** 版本。
+## 1.5 新增
 
-## 1.4.1 修复
+### 自由攀登（常规模式首次通关后解锁）
+用**常规模式**通关一次后，胜利界面和主菜单会多出一个按钮，把整座雪山变成
+沙盒（简单模式通关不算）：
 
-- **Linux 老系统又能跑了**：Linux 包改用 Ubuntu 20.04 容器构建，不再依赖
-  很新的 glibc，老发行版也能启动。
-- **Linux 全屏遮住任务栏了**：全屏时任务栏原先会浮在游戏上面（和 macOS
-  之前一样的问题），现在 Linux 和 macOS 一样使用真全屏，任务栏不再出现。
-- Windows / macOS 除版本号外没有变化。
+- 右上角有一张全山小地图，点击它（或按 **M**）展开
+- 在展开的地图上**右键**，就能传送到对应位置（会自动落到最近的平台）
+- 这个模式不解锁成就；山顶也不再把你关在里面，随时可以跳下去
+- 不占存档位、不会保存
+- 每个账号首次通关时，会在胜利界面直接介绍这个新模式
 
-## 1.4 更新内容
+### 账号系统
+一台电脑多个玩家：每个账号有独立的 5 个存档位、独立的成就、独立的“是否通关”
+和独立的自由攀登解锁。在新加的「账号」界面里新建 / 重命名 / 删除账号。已有的
+存档和成就会自动迁移到第一个账号里，不会丢。
 
-- **简单模式 + 8 个检查点**：新建存档时会先问你用哪种方式爬。选**简单**，每个
-  检查点平台上都会插一面旗子：碰到它，旗子会从红色变成绿色，带一点金光和“叮”
-  的一声，存档也会记住这个检查点。掉下去会淡出、回到你最后碰到的检查点。
-  **常规**模式没有检查点，和以前完全一样。
-- **进度条上的检查点标记**：已到达的检查点是左边缘的绿色菱形，还没到的是红色；
-  快接近下一个检查点时会有跳动的箭头指向它。简单模式顶部还会显示
-  `检查点 n/8`。
-- **全屏 / 窗口模式**：设置里新增**全屏**开关——开 = 全屏（Windows 为无边框
-  窗口，macOS/Linux 为真全屏），关 = 普通窗口。
-  重启游戏后生效（菜单里有提示），所有界面都会按窗口大小自适应。
-- **9 种语言配音**：圣诞老人的闲聊，以及大摔之后头顶的两句嘲讽，现在都会用九种
-  语言念出来。设置里新增**语音**音量条，和音效、音乐分开调。
-- **Alt 改成切换光标**（不用再按住）。
-- **移动平台手感修正**：落在渡台/电梯上时，动量会正确地交给平台（不再把平台速度
-  叠到你身上，也不会突然急停）；离开平台会把平台动量还给你，镜头也会跟着平台走。
-- **风口山脊重做**：风分成三段固定方向，配上斜向雪线，进风和出风都有淡入淡出，
-  能看清哪里开始刮风。
-- **其它小改动**：光标相关的教程文字更新；存档列表会标出这一局是简单还是常规；
-  Windows/macOS 包内版本号更新为 1.4.0。
+### 计时器
+左上角（退出按钮旁边）显示本趟用时；打开全图时暂停，登顶后停表，胜利界面也会
+显示。带存档的趟次会保留用时。
 
-**下载**：按系统选对应文件——Windows 用 `ASliperyClimb_Windows.zip`；macOS 用
-`ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，或安装
-`ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`。不需要安装
-Python 或 pygame。
+### 退出确认
+点退出或关闭窗口时会先问一句“确定退出游戏吗？”。
 
-**首次启动**：Windows 若提示“Windows 已保护你的电脑”→ 更多信息 → 仍要运行；
-macOS 若无法验证 → 系统设置 → 隐私与安全性 → 仍要打开（或
-`xattr -dr com.apple.quarantine "A Slipery Climb.app"`）；当前 macOS 版为 Apple
-Silicon 专用。
+## 1.5 修复
 
-**操作**：鼠标瞄准并扔糖果；**Alt 切换光标**；Esc 保存并回菜单；空格/回车跳过
-片头动画。
+- **存档、设置、账号**界面按 **Esc** 现在能回主菜单
+- 英文的 **Back / Return** 说法统一成 **Back**
+- 按钮统一成蓝色：包括游戏里的退出按钮、音量滑块的 +/−、全屏开关、语言选择
+  和新加的自由攀登按钮
+- 所有按钮都改成了圆角
+- **自由攀登**：离开山顶后会恢复正常冰面摩擦力，山顶的隐形墙在该模式下关闭
+- **自由攀登**：小地图和开场提示会说明地图玩法和“不解锁成就”
+- **自由攀登**：到达山顶后不再切换到 Jingle Bells（那首曲子只属于正式攀登）
+- **自由攀登**：全山地图右键传送现在也能传到最终的山顶平台了
+- 退出确认弹窗打开时整个游戏暂停
+- 账号改名现在支持中日韩等输入法（组字过程显示在输入框里）
+- 改名框更大、带字数显示；支持 **Ctrl+V** 粘贴别处打好的名字；
+  输入法还在组字时按回车不会误提交
+- 韩文账号名现在能正常显示（中文字体里没有韩文字形），
+  字体画不出的符号会被过滤掉
+- 损坏或被手动改过的存档 / 账号文件不会再让游戏崩溃
+- 改用 **Python 3.8** 打包，老一点的电脑和老版本 Linux 也能跑
 
-存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
-`~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
+*1.0 – 1.4.1 仍然可以在 Releases 里下载，现在已经标为预览版。*
 
 ---
 
-# A SLIPERY CLIMB 1.4.1 — Русский
+# A SLIPERY CLIMB · SUMMIT — 1.5.0 — Русский
 
-Небольшой скользкий платформер про Санту, которому нужно подняться на очень
-высокую гору и доставить подарки. Кнопки «идти» нет: двигаешься, бросая конфеты
-и используя взрывы как реактивную тягу.
+**Первый официальный релиз.** Версии 1.0 – 1.4.1 были предварительными сборками,
+эта — официальная. Всё ниже — новое по сравнению с 1.4.1.
 
-Есть сборки для **Windows, macOS и Linux**.
+## Новое в 1.5
 
-## Что исправлено в 1.4.1
+### Свободный подъём (открывается после первого прохождения в обычном режиме)
+Пройди гору один раз в **обычном** режиме — и на экране победы и в главном меню
+появится кнопка, которая открывает всю гору как песочницу (лёгкий режим не
+считается):
 
-- **Linux-сборки снова запускаются на старых дистрибутивах.** Они собираются
-  в контейнере Ubuntu 20.04, поэтому больше не требуют слишком новый glibc.
-- **Полный экран в Linux закрывает панель задач.** Раньше панель оставалась
-  поверх игры (та же проблема, что была в macOS); теперь Linux использует
-  настоящий полный экран, как macOS.
-- Сборки Windows и macOS не изменились, кроме номера версии.
+- в правом верхнем углу — карта всей горы; нажми на неё (или **M**), чтобы
+  развернуть
+- **правый клик** по развёрнутой карте телепортирует туда (игра сама ставит тебя
+  на ближайший уступ)
+- в этом режиме достижения не открываются, а вершина больше не запирает:
+  с неё можно спрыгнуть когда угодно
+- режим ничего не сохраняет и не занимает слот
+- при первом прохождении каждого профиля этот режим объясняется прямо на экране
+  победы
 
-## Что нового в 1.4
+### Профили (аккаунты)
+Один компьютер — несколько игроков: у каждого профиля свои 5 слотов сохранения,
+свои достижения, свой статус «пройдено» и своя разблокировка Свободного подъёма.
+Создавать, переименовывать и удалять профили — на новом экране «Профили». Старые
+сохранения и достижения автоматически переезжают в первый профиль, ничего не
+теряется.
 
-- **Лёгкий режим с 8 контрольными точками.** При создании нового сохранения игра
-  спрашивает, как хочешь подниматься. В **лёгком** режиме на каждой платформе-
-  контрольной точке стоит флаг: коснись его — он сменит красный цвет на зелёный
-  со вспышкой и «дзынь», и сохранение запомнит эту точку. Упал — экран затемняется,
-  и ты возвращаешься к последней точке. В **обычном** режиме контрольных точек
-  нет, всё как раньше.
-- **Контрольные точки на полосе восхождения.** Достигнутые — зелёные ромбы у левого
-  края, ещё не достигнутые — красные; рядом со следующей появляется пульсирующая
-  стрелка. В лёгком режиме сверху видно `Точка n/8`.
-- **Полный экран / окно.** В настройках появился переключатель **Полный экран**:
-  включён — полный экран (безрамочное окно в Windows, настоящий полный экран в
-  macOS/Linux), выключен — обычное окно. Применяется после
-  перезапуска игры (меню об этом пишет), все экраны подстраиваются под окно.
-- **Голоса на 9 языках.** Бормотание Санты и две реплики-подколки после сильного
-  падения теперь озвучены на всех девяти языках. В настройках появился ползунок
-  **Голос** рядом со звуком и музыкой — своя громкость.
-- **Alt теперь переключает курсор** (держать не нужно).
-- **Движущиеся платформы стали правильными.** При приземлении на паром или лифт
-  импульс корректно передаётся платформе (скорость платформы больше не
-  прибавляется к твоей, и нет резкой остановки), при уходе с платформы её импульс
-  возвращается, а камера едет вместе с платформой.
-- **Ветреный хребет переделан.** Ветер дует в трёх фиксированных полосах, с
-  диагональными снежными линиями и плавным появлением/исчезновением — видно, где
-  он начинается и заканчивается.
-- **Мелочи:** обновлён текст обучения про курсор; в слотах сохранений видно,
-  лёгкий это режим или обычный; в сборках Windows/macOS версия 1.4.0.
+### Таймер
+Время текущего забега показывается рядом с кнопкой выхода. Пауза, пока открыта
+карта, остановка на вершине, время видно на экране победы. Сохранённые забеги
+сохраняют время.
 
-**Скачать:** Windows — `ASliperyClimb_Windows.zip`, macOS —
-`ASliperyClimb_macOS.zip`, Linux — `ASliperyClimb_Linux.tar.gz` или пакеты
-`ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`.
-Python и pygame устанавливать не нужно.
+### Подтверждение выхода
+Закрытие окна или кнопка **«Выход»** сначала спрашивают «Выйти из игры?».
 
-**Первый запуск:** Windows — «Windows защитила ваш компьютер» → Подробнее →
-Выполнить всё равно; macOS — Системные настройки → Конфиденциальность и
-безопасность → Всё равно открыть (или
-`xattr -dr com.apple.quarantine "A Slipery Climb.app"`); сборка macOS только для
-Apple Silicon.
+## Исправлено в 1.5
 
-**Управление:** мышь — прицел и бросок; **Alt** — переключить курсор; Esc —
-сохранить и выйти в меню; пробел/Enter — пропустить вступление.
+- **Esc** теперь возвращает в меню с экранов сохранений, настроек и профилей
+- **Back / Return** унифицировано — везде **Back**
+- единый стиль кнопок: снова синие, включая кнопку выхода в игре, +/− громкости,
+  переключатель полного экрана, выбор языка и новые кнопки Свободного подъёма
+- у всех кнопок теперь скруглённые углы
+- **Свободный подъём:** после ухода с вершины возвращается обычное трение льда,
+  невидимая стена на вершине в этом режиме отключена
+- **Свободный подъём:** миникарта и приветствие объясняют карту и что достижения
+  отключены
+- **Свободный подъём:** на вершине больше не включается Jingle Bells (эта музыка
+  осталась для настоящего восхождения)
+- **Свободный подъём:** телепорт по карте теперь может перенести и на финальную
+  вершину
+- диалог выхода ставит игру на паузу, пока он открыт
+- имя профиля можно ввести любым методом ввода (китайский, японский,
+  корейский); композиция IME видна в поле
+- поле имени стало больше и показывает число символов; **Ctrl+V** вставляет
+  имя, набранное в другом месте; Enter не отправляет имя, пока IME набирает
+- корейские имена профилей теперь отображаются правильно (в китайском
+  шрифте нет хангыля), а символы, которые шрифты не рисуют, отфильтровываются
+- повреждённые или вручную изменённые файлы сохранений и профилей больше не
+  роняют игру
+- игра теперь собирается на **Python 3.8**, поэтому запускается и на более
+  старых машинах и старых дистрибутивах Linux
 
-Сохранения: Windows `%APPDATA%\A Slipery Climb`; macOS
-`~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
+*Версии 1.0 – 1.4.1 по-прежнему доступны в Releases и теперь помечены как
+предварительные.*

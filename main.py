@@ -10,6 +10,7 @@ import backdrop
 import achievements
 import chatter
 import paths
+import profiles
 # Register chatter translations (GameObject text renders via i18n.text)
 for _ci, _cen in enumerate(chatter.LINES["en"]):
     for _code, _lines in chatter.LINES.items():
@@ -105,6 +106,9 @@ ICE_BLUE = (121, 151, 161, 150)
 GRAY = (128, 128, 128)
 DARK_GRAY = (64, 64, 64)
 
+# Every clickable button in the game uses the same rounded corners.
+BTN_RADIUS = 10
+
 # Explosion colors
 EXPLOSION_RED_INNER = (255, 50, 0, 255)
 EXPLOSION_RED_MIDDLE = (255, 100, 0, 255)
@@ -121,8 +125,11 @@ class GameState(Enum):
     SETTINGS = 3
     CUTSCENE = 6
     TUTORIAL = 7
+    PROFILES = 8
 
 # Game constants
+GAME_VERSION = "1.5.0"
+GAME_CODENAME = "SUMMIT"
 ground_level = HEIGHT - 200
 
 # ========== Backdrop: snow mountain + summit cabin (clearer the higher you climb) ==========
@@ -400,6 +407,11 @@ RESPAWN_FADE_IN = 0.30         # seconds back to the game
 # File paths
 SAVE_FILE = paths.user("save_data.json")
 SETTINGS_FILE = paths.user("settings.json")
+# Filled in when the player-profile system is bootstrapped: every save slot of
+# the active profile lives in this folder.
+PROFILE_DIR = None
+# Time spent in the current run (seconds), shown next to the exit button.
+run_time = 0.0
 
 # Sound settings
 sound_volume = 0.7
@@ -1845,6 +1857,10 @@ def update_player(keys, dt, mouse_pos):
     global can_throw, mouse_button_down
     global player_entry_time, idle_seconds
 
+    if minimap_open or pending_quit:
+        # Free Climb map / quit dialog: the world waits.
+        return
+
     start_x, start_y = player_x, player_y
 
     if player_is_on_ground:
@@ -2625,20 +2641,44 @@ def draw_game_objects_with_textures(screen):
             obj.draw(screen)
 
 MENU_KEYS = ("continue", "new_game", "tutorial", "saves", "achievements",
-             "settings", "exit")
+             "profile", "settings", "exit")
+
+
+def _fit_text(label, max_width, base_size, color, min_size=22):
+    """Render a label, shrinking the font until it fits the button."""
+    ui_scale = i18n.scale()
+    surface = None
+    for size in (base_size, 42, 36, 30, 26, min_size):
+        label_font = i18n.get_font(max(10, int(size * ui_scale)))
+        surface = label_font.render(label, True, color)
+        if surface.get_width() <= max_width:
+            break
+    return surface
+
+
+def menu_keys():
+    """Menu entries; Free Climb shows up once the mountain has been cleared."""
+    keys = list(MENU_KEYS)
+    if free_climb_unlocked():
+        keys.insert(2, "free_climb")
+    return keys
 
 
 def menu_buttons():
     bw, bh = 330, 52
     x = WIDTH // 2 - bw // 2
-    count = len(MENU_KEYS)
+    keys = menu_keys()
+    count = len(keys)
     y0 = int(HEIGHT * 0.30) + 8
     max_y = HEIGHT - 24 - bh
     spacing = 62
-    if y0 + (count - 1) * spacing + bh > max_y:
-        spacing = max(44, (max_y - y0 - bh) // (count - 1))
+    if count > 1 and y0 + (count - 1) * spacing + bh > max_y:
+        spacing = max(38, (max_y - y0 - bh) // (count - 1))
+    # with many entries the rows get tight: shrink the buttons so they never
+    # overlap each other on short windows
+    bh = max(34, min(bh, spacing - 6))
     return [(key, pygame.Rect(x, y0 + i * spacing, bw, bh))
-            for i, key in enumerate(MENU_KEYS)]
+            for i, key in enumerate(keys)]
 
 
 def draw_menu():
@@ -2659,6 +2699,10 @@ def draw_menu():
             title_text, (int(title_text.get_width() * scale),
                          int(title_text.get_height() * scale)))
     screen.blit(title_text, title_text.get_rect(center=(WIDTH // 2, HEIGHT // 5)))
+    version_text = small_font.render(
+        "v%s \u00b7 %s" % (GAME_VERSION, GAME_CODENAME), True, (132, 146, 190))
+    screen.blit(version_text, version_text.get_rect(
+        bottomright=(WIDTH - 14, HEIGHT - 10)))
     return menu_buttons()
 
 
@@ -2739,8 +2783,8 @@ def draw_tutorial(screen, mouse_pos):
         color = WHITE if hot else LIGHT_BLUE
         if (key == "prev" and page == 0) or (key == "next" and page == len(TUTORIAL_PAGES) - 1):
             color = GRAY
-        pygame.draw.rect(screen, color, rect)
-        pygame.draw.rect(screen, BLACK, rect, 2)
+        pygame.draw.rect(screen, color, rect, border_radius=BTN_RADIUS)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=BTN_RADIUS)
         label = {"prev": "<", "next": ">", "back": i18n.ui("back")}[key]
         surf = font.render(label, True, BLACK)
         screen.blit(surf, surf.get_rect(center=rect.center))
@@ -2951,8 +2995,9 @@ def draw_achievements(screen, mouse_pos):
 
     back = saves_back_rect()
     hovered = back.collidepoint(mouse_pos)
-    pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back)
-    pygame.draw.rect(screen, BLACK, back, 2)
+    pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back,
+                     border_radius=BTN_RADIUS)
+    pygame.draw.rect(screen, BLACK, back, 2, border_radius=BTN_RADIUS)
     surf = font.render(i18n.ui("back"), True, BLACK)
     screen.blit(surf, surf.get_rect(center=back.center))
     draw_custom_cursor(screen, mouse_pos, True)
@@ -3015,6 +3060,9 @@ def load_slot_into_game(slot):
     global player_ground_platform, level_cleared, summit_locked
     global summit_msg_timer, summit_msg_shown
     global run_mode, checkpoint_index, cursor_toggle
+    global run_time
+    # a loaded save is a normal run: never inherit Free Climb state
+    leave_free_climb()
     current_slot = slot
     data = SaveManager.load_slot(slot) if slot is not None else None
     if not _valid_save_data(data):
@@ -3033,6 +3081,13 @@ def load_slot_into_game(slot):
     except (TypeError, ValueError):
         checkpoint_index = 0
     checkpoint_index = max(0, min(len(CHECKPOINTS), checkpoint_index))
+    try:
+        run_time = float(data.get("run_time", 0.0))
+        if not math.isfinite(run_time):
+            run_time = 0.0
+        run_time = max(0.0, min(run_time, 10 ** 7))
+    except (TypeError, ValueError):
+        run_time = 0.0
     cursor_toggle = False
     camera_x = player_x - WIDTH // 2
     camera_y = player_y - HEIGHT // 2
@@ -3062,7 +3117,7 @@ def reset_game():
     reset_summit_music()
     global run_peak_height, wind_intensity, wind_last_direction
     global checkpoint_index, respawn_phase, respawn_timer, respawn_alpha
-    global cursor_toggle
+    global cursor_toggle, run_time
     run_peak_height = 0.0
     wind_intensity = 0.0
     wind_last_direction = 1.0
@@ -3071,6 +3126,7 @@ def reset_game():
     respawn_timer = 0.0
     respawn_alpha = 0
     cursor_toggle = False
+    run_time = 0.0
     """Reset the game."""
     global player_x, player_y, player_velocity_x, player_velocity_y
     global player_is_on_ground, player_facing_right
@@ -3202,7 +3258,7 @@ def update_easy_mode(dt):
     """Checkpoint saving and fall-back-to-checkpoint logic for easy mode."""
     global respawn_phase, respawn_timer, respawn_alpha
     global can_throw, checkpoint_index
-    if run_mode != "easy" or level_cleared:
+    if run_mode != "easy" or level_cleared or pending_quit:
         return
     if respawn_phase == "out":
         respawn_timer -= dt
@@ -3241,6 +3297,7 @@ def update_easy_mode(dt):
 def start_new_game(slot, mode):
     """Start a fresh run in the chosen mode (from the mode dialog)."""
     global current_slot, run_mode, mode_dialog_slot, cursor_toggle
+    leave_free_climb()
     current_slot = slot
     reset_game()
     run_mode = mode if mode in ("normal", "easy") else "normal"
@@ -3277,19 +3334,18 @@ def draw_mode_dialog(screen, mouse_pos):
     hint = hint_font.render(i18n.ui("mode_hint"), True, (200, 210, 235))
     screen.blit(hint, hint.get_rect(center=(WIDTH // 2, box.top + 112)))
     normal_rect, easy_rect, cancel_rect = mode_dialog_rects()
-    for rect, key, color in ((normal_rect, "normal_mode", (110, 150, 210)),
-                             (easy_rect, "easy_mode", (110, 185, 130))):
+    for rect, key in ((normal_rect, "normal_mode"), (easy_rect, "easy_mode")):
         hot = rect.collidepoint(mouse_pos)
-        base = tuple(min(255, c + 30) for c in color) if hot else color
-        pygame.draw.rect(screen, base, rect, border_radius=12)
+        pygame.draw.rect(screen, WHITE if hot else LIGHT_BLUE, rect,
+                         border_radius=12)
         pygame.draw.rect(screen, BLACK, rect, 2, border_radius=12)
-        label = font.render(i18n.ui(key), True, WHITE)
+        label = font.render(i18n.ui(key), True, BLACK)
         screen.blit(label, label.get_rect(center=rect.center))
     hot = cancel_rect.collidepoint(mouse_pos)
-    pygame.draw.rect(screen, WHITE if hot else (110, 122, 158), cancel_rect,
+    pygame.draw.rect(screen, WHITE if hot else LIGHT_BLUE, cancel_rect,
                      border_radius=10)
     pygame.draw.rect(screen, BLACK, cancel_rect, 2, border_radius=10)
-    label = font.render(i18n.ui("cancel"), True, WHITE)
+    label = font.render(i18n.ui("cancel"), True, BLACK)
     screen.blit(label, label.get_rect(center=cancel_rect.center))
 
 
@@ -3306,6 +3362,16 @@ def _atomic_write_json(path, data):
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(tmp, path)
+
+
+def _safe_int(value, default=0):
+    """int() for values read from save files (they can be anything)."""
+    if isinstance(value, bool):
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
 
 
 def _save_velocity(value):
@@ -3337,7 +3403,8 @@ class SaveManager:
 
     @staticmethod
     def slot_file(slot):
-        return paths.user("save_slot_%d.json" % int(slot))
+        folder = PROFILE_DIR if PROFILE_DIR else paths.USER_DIR
+        return os.path.join(folder, "save_slot_%d.json" % int(slot))
 
     @staticmethod
     def slot_exists(slot):
@@ -3350,6 +3417,7 @@ class SaveManager:
                 "height": int(round(ground_level - (player_y + player_height))),
                 "cleared": bool(level_cleared), "clears": achievements.clears(),
                 "mode": run_mode, "checkpoint": int(checkpoint_index),
+                "run_time": round(max(0.0, run_time), 2),
                 "time": time.time()}
         try:
             _atomic_write_json(SaveManager.slot_file(slot), data)
@@ -3389,7 +3457,10 @@ class SaveManager:
         for i in range(1, SaveManager.SLOT_COUNT + 1):
             d = SaveManager.load_slot(i)
             if d:
-                t = float(d.get("time", 0.0))
+                try:
+                    t = float(d.get("time", 0.0))
+                except (TypeError, ValueError):
+                    t = 0.0
                 if t > best_t:
                     best, best_t = i, t
         return best
@@ -3431,6 +3502,60 @@ i18n.set_lang(settings.get("language", "en") if settings else "en")
 pygame.display.set_caption(i18n.ui("game_title"))
 rebuild_fonts()
 refresh_texts()
+
+
+# ========== Player profiles: per-profile saves, achievements, tutorial data ==========
+def apply_profile_dirs():
+    """Point saves / achievements / tutorial memory at the active profile."""
+    global PROFILE_DIR
+    try:
+        PROFILE_DIR = profiles.dir_for()
+    except Exception:
+        PROFILE_DIR = paths.USER_DIR
+    try:
+        achievements.set_profile_file(profiles.data_path("achievements.json"))
+    except Exception:
+        pass
+    flavor_module = sys.modules.get("flavor")
+    if flavor_module is not None:
+        try:
+            flavor_module.set_seen_file(profiles.data_path("tutorial_seen.json"))
+        except Exception:
+            pass
+
+
+def switch_profile(profile_id):
+    """Switch the active profile and reload its data. True when it worked."""
+    global current_slot, level_cleared, cursor_toggle
+    try:
+        if not profiles.set_current(profile_id):
+            return False
+    except Exception:
+        return False
+    current_slot = None
+    level_cleared = False
+    cursor_toggle = False
+    toasts.clear()
+    try:
+        achievements.take_new()
+    except Exception:
+        pass
+    apply_profile_dirs()
+    SaveManager.save_settings(sound_volume, music_volume)
+    return True
+
+
+_profile_word = i18n.ui("profile_word")
+if _profile_word == "profile_word":
+    _profile_word = "Player"
+try:
+    profiles.load(default_name="%s 1" % _profile_word)
+except Exception as _profile_error:   # never block the game on a broken profile file
+    print("profiles disabled:", _profile_error)
+apply_profile_dirs()
+
+# nothing may unlock while the quit dialog has the game paused
+achievements.set_pause_check(lambda: bool(pending_quit))
 
 # ========== Nine-patch system ==========
 class CompleteTiledNinePatch:
@@ -3685,7 +3810,7 @@ class Slider:
     
     def draw(self, screen):
         # Bar color depends on selection
-        bar_color = GREEN if self.selected else DARK_GRAY
+        bar_color = LIGHT_BLUE if self.selected else DARK_GRAY
         
         # Draw slider track
         pygame.draw.rect(screen, bar_color, self.rect)
@@ -3694,21 +3819,23 @@ class Slider:
         # Draw slider handle
         handle_x = max(self.rect.left, min(self.handle_x, self.rect.right))
         
-        pygame.draw.circle(screen, GREEN, (int(handle_x), self.rect.centery), self.handle_radius)
+        pygame.draw.circle(screen, LIGHT_BLUE, (int(handle_x), self.rect.centery), self.handle_radius)
         pygame.draw.circle(screen, WHITE, (int(handle_x), self.rect.centery), self.handle_radius, 2)
         
-        # Draw plus/minus buttons (highlighted when selected)
-        minus_color = YELLOW if (self.selected and self.minus_button.collidepoint(pygame.mouse.get_pos())) else (LIGHT_BLUE if self.minus_button.collidepoint(pygame.mouse.get_pos()) else GRAY)
-        pygame.draw.rect(screen, minus_color, self.minus_button)
-        pygame.draw.rect(screen, WHITE, self.minus_button, 2)
-        minus_text = small_font.render("-", True, WHITE)
+        # Draw plus/minus buttons (blue like every other button)
+        minus_hot = self.minus_button.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, WHITE if minus_hot else LIGHT_BLUE,
+                         self.minus_button, border_radius=8)
+        pygame.draw.rect(screen, BLACK, self.minus_button, 2, border_radius=8)
+        minus_text = small_font.render("-", True, BLACK)
         minus_rect = minus_text.get_rect(center=self.minus_button.center)
         screen.blit(minus_text, minus_rect)
         
-        plus_color = YELLOW if (self.selected and self.plus_button.collidepoint(pygame.mouse.get_pos())) else (LIGHT_BLUE if self.plus_button.collidepoint(pygame.mouse.get_pos()) else GRAY)
-        pygame.draw.rect(screen, plus_color, self.plus_button)
-        pygame.draw.rect(screen, WHITE, self.plus_button, 2)
-        plus_text = small_font.render("+", True, WHITE)
+        plus_hot = self.plus_button.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, WHITE if plus_hot else LIGHT_BLUE,
+                         self.plus_button, border_radius=8)
+        pygame.draw.rect(screen, BLACK, self.plus_button, 2, border_radius=8)
+        plus_text = small_font.render("+", True, BLACK)
         plus_rect = plus_text.get_rect(center=self.plus_button.center)
         screen.blit(plus_text, plus_rect)
         
@@ -3886,6 +4013,45 @@ def draw_summit_hint(screen):
         screen.blit(arrow, arrow.get_rect(topright=(WIDTH - 50, y + 58 + bob)))
 
 
+def free_climb_intro_visible():
+    """First Regular-mode clear of this profile: explain the Free Climb unlock."""
+    if free_climb or not level_cleared or not free_climb_unlocked():
+        return False
+    try:
+        return achievements.free_climb_first_clear()
+    except Exception:
+        return False
+
+
+def draw_free_climb_intro(screen):
+    """Small panel on the victory screen: what Free Climb is."""
+    button = free_climb_button_rect()
+    title_font = i18n.get_font(max(10, int(28 * i18n.scale())))
+    body_font = i18n.get_font(max(10, int(19 * i18n.scale())))
+    panel_w = min(760, WIDTH - 100)
+    lines = _wrap_lines(i18n.ui("free_climb_unlock_hint"), body_font,
+                        panel_w - 44)[:2]
+    line_h = body_font.get_height() + 3
+    panel_h = 44 + line_h * max(1, len(lines)) + 24
+    panel = pygame.Rect(WIDTH // 2 - panel_w // 2, 0, panel_w, panel_h)
+    panel.bottom = button.top - 16
+    if panel.top < int(HEIGHT * 0.35):
+        return     # too little room on very short windows
+    pygame.draw.rect(screen, (18, 22, 46), panel, border_radius=12)
+    pygame.draw.rect(screen, (255, 226, 140), panel, 2, border_radius=12)
+    title = title_font.render(i18n.ui("free_climb_unlock_title"), True,
+                              (255, 226, 140))
+    screen.blit(title, title.get_rect(center=(panel.centerx, panel.y + 24)))
+    y = panel.y + 44
+    for line in lines:
+        surf = body_font.render(line, True, (225, 232, 250))
+        screen.blit(surf, surf.get_rect(center=(panel.centerx, y)))
+        y += line_h
+    draw_text(screen, "%s  %s" % (i18n.ui("time"), format_run_time(run_time)),
+              panel.centerx, panel.bottom - 16, (255, 226, 140), body_font,
+              "center")
+
+
 def draw_victory(screen):
     veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
     veil.fill((0, 0, 0, 150))
@@ -3894,11 +4060,27 @@ def draw_victory(screen):
               WHITE, big_font, "center")
     draw_text(screen, i18n.ui("win_hint"), WIDTH // 2, int(HEIGHT * 0.38),
               YELLOW, font, "center")
+    first_clear = free_climb_intro_visible()
+    if first_clear:
+        draw_free_climb_intro(screen)
+    else:
+        draw_text(screen, "%s  %s" % (i18n.ui("time"), format_run_time(run_time)),
+                  WIDTH // 2, int(HEIGHT * 0.45), (255, 226, 140), small_font,
+                  "center")
+    if free_climb_unlocked():
+        free_btn = free_climb_button_rect()
+        free_hover = free_btn.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, WHITE if free_hover else LIGHT_BLUE, free_btn,
+                         border_radius=BTN_RADIUS)
+        pygame.draw.rect(screen, BLACK, free_btn, 2, border_radius=BTN_RADIUS)
+        free_label = _fit_text(i18n.ui("free_climb"), free_btn.width - 28, 40, BLACK)
+        screen.blit(free_label, free_label.get_rect(center=free_btn.center))
     btn = victory_button_rect()
     hover = btn.collidepoint(pygame.mouse.get_pos())
-    pygame.draw.rect(screen, WHITE if hover else LIGHT_BLUE, btn)
-    pygame.draw.rect(screen, BLACK, btn, 2)
-    surface = font.render(i18n.ui("return"), True, BLACK)
+    pygame.draw.rect(screen, WHITE if hover else LIGHT_BLUE, btn,
+                     border_radius=BTN_RADIUS)
+    pygame.draw.rect(screen, BLACK, btn, 2, border_radius=BTN_RADIUS)
+    surface = font.render(i18n.ui("back"), True, BLACK)
     screen.blit(surface, surface.get_rect(center=btn.center))
     draw_custom_cursor(screen, pygame.mouse.get_pos(), True)
 
@@ -4220,6 +4402,9 @@ def end_cutscene():
 
 def update_cutscene(dt):
     global cutscene_t
+    if pending_quit:
+        # the quit dialog is modal: the cutscene waits for the answer
+        return
     cutscene_t += dt
     if cutscene_t >= cutscene_len:
         cutscene_t = cutscene_len
@@ -4410,6 +4595,9 @@ def apply_summit():
     global player_x, player_y, player_velocity_x, player_velocity_y
     global player_is_on_ground, level_cleared, summit_locked
     global summit_msg_timer, summit_msg_shown, run_peak_height
+    if pending_quit:
+        # the quit dialog is modal: the summit must not be reached behind it
+        return
     feet = ground_level - (player_y + player_height)
     if feet > run_peak_height:
         run_peak_height = feet
@@ -4427,9 +4615,16 @@ def apply_summit():
             player_velocity_y = 0
             player_is_on_ground = True
             summit_locked = True
-            start_summit_music()
-        if summit_locked:
-            # One-way air wall: can enter but not leave
+            if not free_climb:
+                # the Jingle Bells summit theme belongs to the real climb,
+                # not to the Free Climb sandbox
+                start_summit_music()
+        if free_climb and summit_locked and (not over_plateau or feet < top_h - 400):
+            # Free Climb: stepping off the peak returns the normal ice friction
+            summit_locked = False
+        if summit_locked and not free_climb:
+            # One-way air wall: can enter but not leave (regular runs only;
+            # Free Climb lets you jump off the summit whenever you like)
             if player_x < x0 + 2:
                 player_x = x0 + 2
                 if player_velocity_x < 0:
@@ -4438,13 +4633,1028 @@ def apply_summit():
                 player_x = x1 - 2 - player_width
                 if player_velocity_x > 0:
                     player_velocity_x = 0
-    if not level_cleared:
+    if not level_cleared and not free_climb:
         player_rect = pygame.Rect(int(player_x), int(player_y),
                                   player_width, player_height)
         if house_rect.colliderect(player_rect):
-            achievements.add_clear()
+            achievements.add_clear(run_mode)   # only Regular clears unlock Free Climb
             SaveManager.delete_slot(current_slot)   # delete this save after clearing
             start_cutscene("win")
+
+
+# ========== Player profiles screen ==========
+profile_edit = None              # {"mode": "new"/"rename", "text": ...} while naming
+pending_delete_profile = None    # profile dict waiting for delete confirmation
+profile_notice = ""              # short message under the list
+profile_notice_timer = 0.0
+profile_page = 0                 # first profile shown on the list (paging)
+pending_quit = False             # quit-confirmation dialog is open
+
+
+def profile_list_top():
+    """First row y: below the current-profile card (which ends around y=194)."""
+    return max(int(HEIGHT * 0.30), 214)
+
+
+def profile_list_bottom():
+    return HEIGHT - 210
+
+
+def profile_row_width():
+    """Row width; a little space is reserved for the paging arrows."""
+    return max(300, min(720, WIDTH - 150))
+
+
+def profile_page_size():
+    """How many profile rows fit between the current card and the buttons."""
+    available = profile_list_bottom() - profile_list_top()
+    return max(3, min(6, max(1, available // 68)))
+
+
+def profile_page_count():
+    try:
+        count = len(profiles.all())
+    except Exception:
+        count = 1
+    size = profile_page_size()
+    return max(1, (count + size - 1) // size)
+
+
+def profile_rows():
+    """Clickable rows of the current page (click = switch to it)."""
+    global profile_page
+    try:
+        entries = profiles.all()
+    except Exception:
+        entries = []
+    size = profile_page_size()
+    pages = max(1, (len(entries) + size - 1) // size)
+    profile_page = max(0, min(profile_page, pages - 1))
+    entries = entries[profile_page * size:(profile_page + 1) * size]
+
+    bw, bh = profile_row_width(), 58
+    x = WIDTH // 2 - bw // 2
+    top = profile_list_top()
+    bottom = profile_list_bottom()
+    count = max(1, len(entries))
+    spacing = 68
+    if count > 1 and top + (count - 1) * spacing + bh > bottom:
+        spacing = max(46, (bottom - top - bh) // (count - 1))
+    if top + (count - 1) * spacing + bh > bottom:
+        bh = max(34, spacing - 10)
+    return [(entry, pygame.Rect(x, top + i * spacing, bw, bh))
+            for i, entry in enumerate(entries)]
+
+
+def profile_page_rects():
+    """Small previous / next buttons when there are more profiles than fit."""
+    if profile_page_count() <= 1:
+        return []
+    bw, bh = 52, 38
+    x = WIDTH // 2 + profile_row_width() // 2 + 10
+    y = profile_list_top() + 8
+    return [("prev", pygame.Rect(x, y, bw, bh)),
+            ("next", pygame.Rect(x, y + bh + 10, bw, bh))]
+
+
+def profile_action_rects():
+    """Bottom buttons: new profile / rename / delete / back."""
+    gap = 14
+    keys = ("profile_new", "profile_rename", "delete", "back")
+    bw = max(120, min(200, (WIDTH - 60 - gap * (len(keys) - 1)) // len(keys)))
+    bh = 54
+    total = bw * len(keys) + gap * (len(keys) - 1)
+    x0 = WIDTH // 2 - total // 2
+    y = HEIGHT - 96
+    return [(key, pygame.Rect(x0 + i * (bw + gap), y, bw, bh))
+            for i, key in enumerate(keys)]
+
+
+def profile_name_rects():
+    """OK / cancel buttons of the profile-name dialog."""
+    bw, bh = 200, 54
+    y = HEIGHT // 2 + 78
+    return (pygame.Rect(WIDTH // 2 - bw - 16, y, bw, bh),
+            pygame.Rect(WIDTH // 2 + 16, y, bw, bh))
+
+
+def profile_delete_rects():
+    """Delete / cancel buttons of the profile-delete dialog."""
+    bw, bh = 220, 58
+    y = HEIGHT // 2 + 58
+    return (pygame.Rect(WIDTH // 2 - bw - 14, y, bw, bh),
+            pygame.Rect(WIDTH // 2 + 14, y, bw, bh))
+
+
+def _display_profile_name(name, limit=24):
+    """A printable, bounded profile name for the screen.
+
+    profiles.json can be hand-edited, so names may contain control characters,
+    NULs, lone surrogates or emoji the bundled fonts cannot draw.
+    """
+    return _clean_name_text(name, limit) or "?"
+
+
+def _profile_stats(entry):
+    try:
+        return profiles.stats(entry.get("id"))
+    except Exception:
+        return {"cleared": False, "best_height": 0, "saves": 0}
+
+
+_NAME_RANGES = ((0x00A0, 0x024F),    # Latin extended
+                (0x0370, 0x03FF),    # Greek
+                (0x0400, 0x052F),    # Cyrillic
+                (0x1E00, 0x1EFF),    # Latin extended additional
+                (0x2000, 0x206F),    # general punctuation
+                (0x3000, 0x303F),    # CJK punctuation
+                (0x3040, 0x30FF),    # Hiragana / Katakana
+                (0x3130, 0x318F),    # Hangul compatibility jamo
+                (0x3400, 0x4DBF),    # CJK extension A
+                (0x4E00, 0x9FFF),    # CJK unified ideographs
+                (0xAC00, 0xD7AF),    # Hangul syllables
+                (0xFF00, 0xFFEF))    # fullwidth forms
+
+
+def _name_char_ok(ch):
+    """Characters a profile name may contain (things the bundled fonts cover)."""
+    if ch == " ":
+        return True
+    code = ord(ch)
+    if code < 128:
+        return ch.isprintable()
+    for low, high in _NAME_RANGES:
+        if low <= code <= high:
+            return True
+    return False
+
+
+def _clean_name_text(text, limit=24):
+    """Keep only name-safe characters, trimmed to the 24-character limit."""
+    return "".join(ch for ch in (text or "") if _name_char_ok(ch))[:limit]
+
+
+def _has_hangul(text):
+    for ch in text or "":
+        code = ord(ch)
+        if 0xAC00 <= code <= 0xD7AF or 0x3130 <= code <= 0x318F:
+            return True
+    return False
+
+
+def _profile_name_font(base_size, text=""):
+    """Font used for user-typed profile names.
+
+    A player can type a name in any script, so names are drawn with a font that
+    covers more than the current UI language: the CJK font for Han / kana, the
+    Korean font for Hangul (Microsoft YaHei has no Hangul glyphs).
+    """
+    size = max(10, int(base_size * i18n.scale()))
+    if i18n.current in ("zh", "ja", "ko"):
+        base = i18n.get_font(size)
+    else:
+        base = i18n.font_for("zh", max(10, int(size * 0.82)))
+    if _has_hangul(text) and i18n.current != "ko":
+        try:
+            return i18n.font_for("ko", max(10, int(size * 0.85)))
+        except Exception:
+            return base
+    return base
+
+
+def _fit_profile_name(label, max_width, base_size, color):
+    """Render a profile name, shrinking until it fits."""
+    surface = None
+    for size in (base_size, 28, 24, 20, 17, 15):
+        surface = _profile_name_font(size, label).render(label, True, color)
+        if surface.get_width() <= max_width:
+            break
+    return surface
+
+
+def _clipboard_text():
+    """Text from the OS clipboard (used for pasting IME-typed names)."""
+    try:
+        if not pygame.scrap.get_init():
+            pygame.scrap.init()
+        raw = pygame.scrap.get(pygame.SCRAP_TEXT)
+        if not raw:
+            return ""
+        text = bytes(bytearray(raw)).decode("utf-8", "ignore")
+        text = text.replace("\x00", "").replace("\r", " ").replace("\n", " ")
+        return "".join(ch for ch in text if ch.isprintable())
+    except Exception:
+        return ""
+
+
+def profile_notice_show(text, seconds=3.0):
+    global profile_notice, profile_notice_timer
+    profile_notice = text or ""
+    profile_notice_timer = seconds if text else 0.0
+
+
+def new_profile_default_name():
+    try:
+        count = len(profiles.all()) + 1
+    except Exception:
+        count = 1
+    return "%s %d" % (i18n.ui("profile_word"), count)
+
+
+def open_profile_editor(mode, text):
+    global profile_edit
+    profile_edit = {"mode": mode, "text": text or "",
+                    "composing": "", "pending_key": ""}
+    # enable SDL text input so IME composition (Chinese / Japanese / Korean and
+    # every other input method) reaches the name field
+    try:
+        pygame.key.start_text_input()
+    except Exception:
+        pass
+
+
+def close_profile_editor():
+    global profile_edit
+    profile_edit = None
+    try:
+        pygame.key.stop_text_input()
+    except Exception:
+        pass
+
+
+def commit_profile_editor():
+    """Apply the typed name: create a profile or rename the current one."""
+    global profile_page
+    if profile_edit is None:
+        return
+    name = profile_edit["text"].strip()[:24]
+    if not name:
+        profile_notice_show(i18n.ui("profile_name_title"))
+        return
+    try:
+        if profile_edit["mode"] == "new":
+            profiles.create(name)
+            # jump to the page that shows the new profile
+            profile_page = max(0, profile_page_count() - 1)
+        else:
+            profiles.rename(profiles.current_id(), name)
+    except Exception:
+        pass
+    close_profile_editor()
+
+
+def profile_editor_event(event):
+    """Keyboard / IME input for the profile-name dialog. True when handled."""
+    if profile_edit is None:
+        return False
+
+    # --- IME / text input (needed for Chinese, Japanese, Korean, emoji, ...)
+    if event.type == pygame.TEXTEDITING:
+        composing = getattr(event, "text", "") or ""
+        profile_edit["composing"] = composing
+        profile_edit["pending_key"] = ""
+        return True
+    if event.type == pygame.TEXTINPUT:
+        text = getattr(event, "text", "") or ""
+        profile_edit["composing"] = ""
+        if text and text == profile_edit.get("pending_key"):
+            # the same character already came in through KEYDOWN.unicode
+            profile_edit["pending_key"] = ""
+            return True
+        profile_edit["pending_key"] = ""
+        add = _clean_name_text(text)
+        if add:
+            profile_edit["text"] = (profile_edit["text"] + add)[:24]
+        return True
+
+    if event.type != pygame.KEYDOWN:
+        return False
+    mods = getattr(event, "mod", 0) or 0
+    if event.key == pygame.K_v and (mods & pygame.KMOD_CTRL or
+                                    mods & pygame.KMOD_META):
+        pasted = _clean_name_text(_clipboard_text())
+        if pasted:
+            profile_edit["text"] = (profile_edit["text"] + pasted)[:24]
+        profile_edit["composing"] = ""
+        return True
+    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+        if profile_edit.get("composing"):
+            # an IME is composing: Enter belongs to the candidate picker
+            return True
+        commit_profile_editor()
+        return True
+    if event.key == pygame.K_ESCAPE:
+        close_profile_editor()
+        return True
+    if event.key == pygame.K_BACKSPACE:
+        if profile_edit["composing"]:
+            profile_edit["composing"] = ""
+        else:
+            profile_edit["text"] = profile_edit["text"][:-1]
+        return True
+    char = getattr(event, "unicode", "")
+    if char and char.isprintable() and not profile_edit["composing"] \
+            and len(profile_edit["text"]) < 24:
+        # fallback for platforms where TEXTINPUT is unavailable; skipped while
+        # an IME composition is in progress so no pinyin letters leak in
+        profile_edit["text"] += char
+        profile_edit["pending_key"] = char
+        return True
+    return False
+
+
+def delete_current_profile():
+    """Delete the profile chosen in the dialog; switching first if needed."""
+    global pending_delete_profile
+    target = pending_delete_profile
+    pending_delete_profile = None
+    if not target:
+        return
+    try:
+        entries = profiles.all()
+        others = [p for p in entries if p.get("id") != target.get("id")]
+        if not others:
+            profile_notice_show(i18n.ui("profile_last_error"))
+            return
+        if profiles.current_id() == target.get("id"):
+            switch_profile(others[0].get("id"))
+        profiles.remove(target.get("id"))
+    except Exception:
+        profile_notice_show(i18n.ui("profile_last_error"))
+
+
+def draw_profiles(screen, mouse_pos):
+    title = big_font.render(i18n.ui("profiles"), True, WHITE)
+    screen.blit(title, title.get_rect(center=(WIDTH // 2, 46)))
+
+    try:
+        current_profile = profiles.current()
+    except Exception:
+        current_profile = {"id": "", "name": "?"}
+    current_stats = _profile_stats(current_profile)
+    card_w = min(760, WIDTH - 80)
+    card = pygame.Rect(WIDTH // 2 - card_w // 2, 106, card_w, 88)
+    pygame.draw.rect(screen, (18, 22, 46), card, border_radius=12)
+    pygame.draw.rect(screen, LIGHT_BLUE, card, 2, border_radius=12)
+    name = _display_profile_name(current_profile.get("name", "?"))
+    name_font = _profile_name_font(34, name)
+    name_surface = name_font.render(name, True, WHITE)
+    screen.blit(name_surface, (card.x + 22, card.y + 12))
+    status = "%s  ·  %s" % (
+        i18n.ui("profile_cleared") if current_stats["cleared"]
+        else i18n.ui("profile_not_cleared"),
+        i18n.ui("profile_best").format(m=current_stats["best_height"] // 100))
+    status_surface = small_font.render(
+        status, True, (255, 226, 140) if current_stats["cleared"] else (192, 202, 232))
+    screen.blit(status_surface, (card.x + 22, card.y + 56))
+    current_surface = small_font.render(i18n.ui("profile_current"), True, LIGHT_BLUE)
+    screen.blit(current_surface,
+                current_surface.get_rect(midright=(card.right - 22, card.centery)))
+
+    for entry, rect in profile_rows():
+        is_current = entry.get("id") == current_profile.get("id")
+        hovered = rect.collidepoint(mouse_pos)
+        if is_current:
+            # the active profile keeps the blue button look, only darker
+            color = (116, 158, 214)
+        else:
+            color = WHITE if hovered else LIGHT_BLUE
+        pygame.draw.rect(screen, color, rect, border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        entry_stats = _profile_stats(entry)
+        row_label = _fit_profile_name(
+            _display_profile_name(entry.get("name", "?")), 400, 34,
+            WHITE if is_current else BLACK)
+        screen.blit(row_label, (rect.x + 18,
+                                rect.centery - row_label.get_height() // 2))
+        row_status = "%s  ·  %s" % (
+            i18n.ui("profile_cleared") if entry_stats["cleared"]
+            else i18n.ui("profile_not_cleared"),
+            i18n.ui("profile_best").format(m=entry_stats["best_height"] // 100))
+        row_surface = small_font.render(
+            row_status, True, (235, 242, 255) if is_current else (28, 38, 66))
+        screen.blit(row_surface,
+                    row_surface.get_rect(midright=(rect.right - 16, rect.centery)))
+
+    page_rects = profile_page_rects()
+    for key, rect in page_rects:
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, rect,
+                         border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        arrow = font.render("<" if key == "prev" else ">", True, BLACK)
+        screen.blit(arrow, arrow.get_rect(center=rect.center))
+    if len(page_rects) == 2:
+        page_text = "%d / %d" % (profile_page + 1, profile_page_count())
+        page_surface = small_font.render(page_text, True, (200, 210, 235))
+        # under the arrows, so it never touches the current-profile card
+        next_rect = page_rects[1][1]
+        screen.blit(page_surface, page_surface.get_rect(
+            topleft=(next_rect.left, next_rect.bottom + 6)))
+
+    for key, rect in profile_action_rects():
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, rect,
+                         border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        label = _fit_text(i18n.ui(key), rect.width - 18, 34, BLACK)
+        screen.blit(label, label.get_rect(center=rect.center))
+
+    hint = small_font.render(i18n.ui("profile_hint"), True, (200, 210, 235))
+    screen.blit(hint, hint.get_rect(center=(WIDTH // 2, HEIGHT - 142)))
+    if profile_notice_timer > 0.0 and profile_notice:
+        notice = small_font.render(profile_notice, True, (255, 168, 150))
+        screen.blit(notice, notice.get_rect(center=(WIDTH // 2, HEIGHT - 172)))
+
+    if profile_edit is not None:
+        draw_profile_editor(screen, mouse_pos)
+    if pending_delete_profile is not None:
+        draw_profile_delete_dialog(screen, mouse_pos)
+    draw_custom_cursor(screen, mouse_pos, True)
+
+
+def draw_profile_editor(screen, mouse_pos):
+    veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    veil.fill((0, 0, 0, 170))
+    screen.blit(veil, (0, 0))
+    box = pygame.Rect(0, 0, min(880, WIDTH - 80), 360)
+    box.center = (WIDTH // 2, HEIGHT // 2)
+    pygame.draw.rect(screen, (18, 22, 46), box, border_radius=14)
+    pygame.draw.rect(screen, (255, 214, 120), box, 2, border_radius=14)
+    title = font.render(i18n.ui("profile_name_title"), True, WHITE)
+    screen.blit(title, title.get_rect(center=(box.centerx, box.y + 46)))
+    field = pygame.Rect(box.x + 40, box.y + 84, box.w - 80, 84)
+    pygame.draw.rect(screen, (10, 14, 30), field, border_radius=8)
+    pygame.draw.rect(screen, LIGHT_BLUE, field, 2, border_radius=8)
+    display_text = (_display_profile_name(profile_edit["text"])
+                    if profile_edit["text"] else "")
+    text_surface = _fit_profile_name(display_text, field.w - 40, 40, WHITE)
+    text_x = field.x + 18
+    screen.blit(text_surface,
+                (text_x, field.centery - text_surface.get_height() // 2))
+    cursor_x = text_x + text_surface.get_width()
+    composing = profile_edit.get("composing", "")
+    if composing:
+        comp_surface = _fit_profile_name(composing, field.w - 80, 34,
+                                         (155, 200, 240))
+        screen.blit(comp_surface,
+                    (cursor_x + 2,
+                     field.centery - comp_surface.get_height() // 2))
+        pygame.draw.line(screen, (155, 200, 240),
+                         (cursor_x + 2, field.centery + 18),
+                         (cursor_x + 2 + comp_surface.get_width(),
+                          field.centery + 18), 2)
+        cursor_x += comp_surface.get_width() + 4
+    # caret rect: the OS IME candidate window is positioned next to it
+    caret = pygame.Rect(int(cursor_x), field.centery - 20, 2, 40)
+    try:
+        pygame.key.set_text_input_rect(caret)
+    except Exception:
+        pass
+    if (pygame.time.get_ticks() // 500) % 2 == 0:
+        pygame.draw.line(screen, WHITE, (cursor_x, field.y + 16),
+                         (cursor_x, field.bottom - 16), 2)
+    counter = small_font.render("%d / 24" % len(profile_edit["text"]), True,
+                                (150, 162, 200))
+    screen.blit(counter, counter.get_rect(
+        bottomright=(field.right - 8, field.bottom - 6)))
+    hint = small_font.render(i18n.ui("profile_name_hint"), True, (200, 210, 235))
+    screen.blit(hint, hint.get_rect(center=(box.centerx, box.y + 196)))
+    paste_hint = small_font.render(i18n.ui("profile_paste_hint"), True,
+                                   (160, 176, 215))
+    screen.blit(paste_hint, paste_hint.get_rect(center=(box.centerx, box.y + 226)))
+    ok_rect, cancel_rect = profile_name_rects()
+    for rect, key in ((ok_rect, "ok"), (cancel_rect, "cancel")):
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, rect,
+                         border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        label = _fit_text(i18n.ui(key), rect.width - 18, 34, BLACK)
+        screen.blit(label, label.get_rect(center=rect.center))
+
+
+def draw_profile_delete_dialog(screen, mouse_pos):
+    veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    veil.fill((0, 0, 0, 170))
+    screen.blit(veil, (0, 0))
+    box = pygame.Rect(0, 0, min(760, WIDTH - 80), 290)
+    box.center = (WIDTH // 2, HEIGHT // 2)
+    pygame.draw.rect(screen, (18, 22, 46), box, border_radius=14)
+    pygame.draw.rect(screen, (225, 110, 105), box, 2, border_radius=14)
+    name = _display_profile_name(pending_delete_profile.get("name", "?"))
+    title_text = i18n.ui("profile_delete_title").format(n=name)
+    title = _fit_profile_name(title_text, box.w - 40, 30, WHITE)
+    screen.blit(title, title.get_rect(center=(box.centerx, box.y + 66)))
+    hint = small_font.render(i18n.ui("profile_delete_hint"), True, (206, 214, 240))
+    screen.blit(hint, hint.get_rect(center=(box.centerx, box.y + 118)))
+    yes_rect, no_rect = profile_delete_rects()
+    for rect, key in ((yes_rect, "delete"), (no_rect, "cancel")):
+        hot = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hot else LIGHT_BLUE, rect,
+                         border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        label = _fit_text(i18n.ui(key), rect.width - 18, 34, BLACK)
+        screen.blit(label, label.get_rect(center=rect.center))
+    draw_custom_cursor(screen, mouse_pos, True)
+
+
+# ========== Exit confirmation dialog ==========
+def save_before_quit():
+    """Autosave the current run + settings before the game closes."""
+    if (current_state == GameState.PLAYING and not level_cleared
+            and current_slot is not None and not free_climb):
+        SaveManager.save_slot(current_slot, player_x, player_y,
+                              player_velocity_x, player_velocity_y)
+    SaveManager.save_settings(sound_volume, music_volume)
+
+
+def exit_dialog_rects():
+    """Exit / cancel buttons of the quit dialog."""
+    bw, bh = 240, 58
+    y = HEIGHT // 2 + 42
+    return (pygame.Rect(WIDTH // 2 - bw - 16, y, bw, bh),
+            pygame.Rect(WIDTH // 2 + 16, y, bw, bh))
+
+
+def draw_exit_dialog(screen, mouse_pos):
+    veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    veil.fill((0, 0, 0, 175))
+    screen.blit(veil, (0, 0))
+    box = pygame.Rect(0, 0, min(700, WIDTH - 80), 280)
+    box.center = (WIDTH // 2, HEIGHT // 2)
+    pygame.draw.rect(screen, (18, 22, 46), box, border_radius=14)
+    pygame.draw.rect(screen, LIGHT_BLUE, box, 2, border_radius=14)
+    title = font.render(i18n.ui("exit_confirm"), True, WHITE)
+    screen.blit(title, title.get_rect(center=(box.centerx, box.y + 72)))
+    if not free_climb and not level_cleared:
+        # only promise saving when this dialog actually saves the run
+        hint = small_font.render(i18n.ui("exit_confirm_hint"), True,
+                                 (200, 210, 235))
+        screen.blit(hint, hint.get_rect(center=(box.centerx, box.y + 126)))
+    yes_rect, no_rect = exit_dialog_rects()
+    for rect, key in ((yes_rect, "exit"), (no_rect, "cancel")):
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, rect,
+                         border_radius=8)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=8)
+        label = _fit_text(i18n.ui(key), rect.width - 18, 34, BLACK)
+        screen.blit(label, label.get_rect(center=rect.center))
+    draw_custom_cursor(screen, mouse_pos, True)
+
+
+# ========== Run timer ==========
+def format_run_time(seconds):
+    try:
+        seconds = int(seconds)
+    except (TypeError, ValueError, OverflowError):
+        seconds = 0
+    if seconds < 0 or seconds > 10 ** 8:
+        seconds = 0
+    hours, rest = divmod(seconds, 3600)
+    minutes, secs = divmod(rest, 60)
+    if hours:
+        return "%d:%02d:%02d" % (hours, minutes, secs)
+    return "%d:%02d" % (minutes, secs)
+
+
+def draw_run_timer(screen):
+    label = format_run_time(run_time)
+    timer_font = i18n.get_font(max(10, int(26 * i18n.scale())))
+    text = timer_font.render(label, True, (255, 240, 200))
+    box = pygame.Surface((text.get_width() + 20, text.get_height() + 8),
+                         pygame.SRCALPHA)
+    pygame.draw.rect(box, (14, 18, 40, 190), box.get_rect(), border_radius=8)
+    box.blit(text, (10, 4))
+    screen.blit(box, (182, 24))
+
+
+# ========== Free Climb: whole-mountain sandbox (unlocked by the first clear) ==========
+# After the first victory an extra button opens the mountain as a sandbox mode:
+# a map of the whole climb sits in the top-right corner, clicking it expands,
+# and a right-click on the opened map teleports the player to that spot.
+# Nothing done in this mode counts towards achievements, and it never touches
+# a save slot: the run is not saved and no saved game is overwritten.
+free_climb = False             # sandbox mode active
+minimap_open = False           # the whole-mountain map overlay is open
+free_climb_hint_timer = 0.0    # welcome banner countdown
+free_climb_fx = []             # teleport sparkle bursts
+
+MM_X0, MM_X1 = 0.0, 12000.0    # playable horizontal range of the level
+MM_TOP_H = 18600.0             # height (px) drawn at the top of the map
+MM_WALK_MIN, MM_WALK_MAX = 8.0, 11920.0
+_MM_SUMMIT = None              # cached (left, right, top height) of the summit
+
+
+def free_climb_unlocked():
+    """Free Climb opens after a Regular-mode clear (not after an Easy clear)."""
+    try:
+        return achievements.free_climb_rule_unlocked()
+    except Exception:
+        return False
+
+
+def leave_free_climb():
+    """Make sure a normal run never inherits the Free Climb sandbox state.
+
+    Called whenever a save is loaded / a new run starts: the menu transition
+    cleanup can be skipped when the state changes twice inside one event batch
+    (e.g. Esc to the menu and a Continue click in the same frame), so the run
+    entry points reset it themselves.
+    """
+    global free_climb, minimap_open
+    if free_climb or getattr(achievements, "SANDBOX", False):
+        free_climb = False
+        minimap_open = False
+        achievements.set_sandbox(False)
+
+
+def free_climb_button_rect():
+    """Extra button on the victory screen: jump straight into Free Climb."""
+    bw, bh = 320, 60
+    return pygame.Rect(WIDTH // 2 - bw // 2, HEIGHT - 240, bw, bh)
+
+
+def start_free_climb():
+    """Enter the sandbox: whole mountain, no saving, no achievements."""
+    global free_climb, minimap_open, free_climb_hint_timer, free_climb_fx
+    global current_slot, run_mode, cursor_toggle
+    free_climb = True
+    current_slot = None
+    run_mode = "normal"
+    cursor_toggle = False
+    minimap_open = False
+    free_climb_fx = []
+    reset_game()
+    reset_summit_music()
+    achievements.set_sandbox(True)
+    free_climb_hint_timer = 11.0
+
+
+# ------------------------------------------------------- whole-mountain map
+def minimap_small_rect():
+    """The little map in the top-right corner."""
+    height = int(min(max(HEIGHT * 0.24, 120), HEIGHT - 180))
+    width = max(70, int(height * (MM_X1 - MM_X0) / MM_TOP_H))
+    return pygame.Rect(WIDTH - width - 18, 18, width, height)
+
+
+def minimap_panel_rect():
+    """The expanded map in the middle of the screen."""
+    ratio = (MM_X1 - MM_X0) / MM_TOP_H
+    height = min(int(HEIGHT * 0.80), HEIGHT - 140)
+    width = int(height * ratio)
+    max_width = WIDTH - 140
+    if width > max_width:
+        width = max_width
+        height = int(width / ratio)
+    return pygame.Rect(WIDTH // 2 - width // 2, HEIGHT // 2 - height // 2,
+                       width, height)
+
+
+def _map_font(size):
+    return i18n.get_font(max(10, int(size * i18n.scale())))
+
+
+def free_climb_summit():
+    """World left/right/top height of the summit plateau (from the backdrop)."""
+    global _MM_SUMMIT
+    if _MM_SUMMIT is None:
+        try:
+            left, right, top_h, _house, anchored = backdrop_layer.summit_geometry(
+                0.0, 0.0, backdrop_layer.summit_top)
+            _MM_SUMMIT = ((left, right, top_h) if anchored
+                          else (4900.0, 7100.0, 18000.0))
+        except Exception:
+            _MM_SUMMIT = (4900.0, 7100.0, 18000.0)
+    return _MM_SUMMIT
+
+
+def _draw_climb_map(surf, big=False):
+    """Paint the whole mountain on a surface: platforms, routes, player."""
+    width, height = surf.get_size()
+    surf.fill((16, 20, 42))
+
+    def mx(world_x):
+        return (world_x - MM_X0) / (MM_X1 - MM_X0) * width
+
+    def my(world_h):
+        world_h = max(0.0, min(MM_TOP_H, world_h))
+        return (MM_TOP_H - world_h) / MM_TOP_H * height
+
+    # altitude lines with metre labels on the big map
+    if big:
+        grid = pygame.Surface((width, height), pygame.SRCALPHA)
+        step_font = _map_font(14)
+        for meters in range(20, int(MM_TOP_H // 100), 20):
+            y = int(my(meters * 100.0))
+            pygame.draw.line(grid, (38, 46, 78), (0, y), (width, y), 1)
+            if meters % 40 == 0:
+                label = step_font.render("%d m" % meters, True, (108, 128, 172))
+                grid.blit(label, (5, y - label.get_height() - 1))
+        surf.blit(grid, (0, 0))
+
+    # wind ridge band
+    wind_top = int(my(WIND_HI))
+    wind_bottom = int(my(WIND_LO))
+    band = pygame.Surface((width, max(2, wind_bottom - wind_top)), pygame.SRCALPHA)
+    band.fill((120, 200, 255, 46))
+    surf.blit(band, (0, wind_top))
+
+    # platforms; the tall side walls are replaced by the map border
+    for obj in game:
+        if obj.obj_type != 'platform' or obj.height > 5000:
+            continue
+        surface_h = ground_level - (obj.y - obj.height)
+        x = mx(obj.x)
+        x2 = mx(obj.x + obj.width)
+        y = my(surface_h)
+        y_top = my(surface_h - obj.height)
+        thickness = max(2, int(round(y_top - y)))
+        if obj.height >= 1000:      # the ground plate: a wide band at the bottom
+            thickness = max(4, int(height * (obj.height / MM_TOP_H)))
+        rect = pygame.Rect(int(round(x)), int(round(y)) - thickness,
+                           max(1, int(round(x2 - x))), thickness)
+        if obj.height >= 1000:
+            color = (120, 160, 200)
+        else:
+            color = (245, 165, 70) if obj.is_moving else (150, 235, 170)
+        pygame.draw.rect(surf, color, rect)
+        if obj.is_moving:
+            # where the platform travels, so the route is readable
+            h1 = ground_level - (obj.start_y - obj.height)
+            h2 = ground_level - (obj.end_y - obj.height)
+            pygame.draw.line(surf, (150, 112, 72),
+                             (int(mx(obj.start_x)), int(my(h1))),
+                             (int(mx(obj.end_x)), int(my(h2))), 1)
+
+    # the eight "practice spot" checkpoints of the easy mode
+    for cp_x, cp_w, cp_top in CHECKPOINTS:
+        cx = int(mx(cp_x + cp_w / 2.0))
+        cy = int(my(cp_top))
+        radius = 4 if big else 2
+        pygame.draw.polygon(surf, (255, 226, 140),
+                            [(cx, cy - radius), (cx + radius, cy),
+                             (cx, cy + radius), (cx - radius, cy)])
+
+    # summit plateau + cabin
+    left, right, top_h = free_climb_summit()
+    sx0, sx1 = int(mx(left)), int(mx(right))
+    sy = int(my(top_h))
+    pygame.draw.line(surf, (255, 214, 120), (sx0, sy), (sx1, sy),
+                     max(2, 4 if big else 2))
+    house_x = (sx0 + sx1) // 2
+    house_h = 7 if big else 4
+    pygame.draw.rect(surf, (255, 236, 190),
+                     (house_x - house_h, sy - house_h, house_h * 2, house_h))
+    pygame.draw.polygon(surf, (255, 214, 120),
+                        [(house_x - house_h - 2, sy - house_h),
+                         (house_x, sy - house_h * 2 - 2),
+                         (house_x + house_h + 2, sy - house_h)])
+
+    # the current camera view
+    vx0, vx1 = mx(camera_x), mx(camera_x + WIDTH)
+    vy_top = my(ground_level - camera_y)
+    vy_bottom = my(ground_level - (camera_y + HEIGHT))
+    view = pygame.Rect(int(vx0), int(vy_top), max(2, int(vx1 - vx0)),
+                       max(2, int(vy_bottom - vy_top)))
+    pygame.draw.rect(surf, (255, 255, 255, 110), view, 1)
+
+    # the player
+    feet = ground_level - (player_y + player_height)
+    marker_x = int(mx(player_x + player_width / 2.0))
+    marker_y = int(my(feet))
+    pulse = 2 + (1 if math.sin(pygame.time.get_ticks() / 260.0) > 0 else 0)
+    pygame.draw.circle(surf, (255, 255, 255), (marker_x, marker_y), pulse + 2, 1)
+    pygame.draw.circle(surf, (255, 138, 92), (marker_x, marker_y), pulse)
+
+    pygame.draw.rect(surf, (92, 112, 164), surf.get_rect(), 1)
+
+
+def map_point_to_world(pos):
+    """Turn a click on the expanded map back into (world x, height)."""
+    panel = minimap_panel_rect()
+    if not panel.collidepoint(pos):
+        return None
+    fx = (pos[0] - panel.x) / float(max(1, panel.w))
+    fy = (pos[1] - panel.y) / float(max(1, panel.h))
+    return MM_X0 + fx * (MM_X1 - MM_X0), MM_TOP_H * (1.0 - fy)
+
+
+def free_climb_landing(world_x, world_h):
+    """Closest walkable surface for a click: land on a ledge, not in the air."""
+    target_y = ground_level - world_h
+    # candidates are (distance, x_left, x_right, surface_y)
+    best = None
+    for obj in game:
+        if obj.obj_type != 'platform' or obj.height > 5000:
+            continue
+        if obj.x > world_x + 40 or obj.x + obj.width < world_x - 40:
+            continue
+        surface_y = obj.y - obj.height
+        distance = abs(surface_y - target_y)
+        if best is None or distance < best[0]:
+            best = (distance, obj.x + 6, obj.x + obj.width - 6, surface_y)
+    # the final summit plateau is not a GameObject: it comes from the backdrop,
+    # but it is a walkable surface and must be reachable by the map teleport
+    try:
+        plateau_left, plateau_right, plateau_top = free_climb_summit()
+        if plateau_left - 60 <= world_x <= plateau_right + 60:
+            surface_y = ground_level - plateau_top
+            distance = abs(surface_y - target_y)
+            if best is None or distance < best[0]:
+                best = (distance, plateau_left + 40,
+                        plateau_right - 40, surface_y)
+    except Exception:
+        pass
+    if best is None:
+        return None
+    surface_y = best[3]
+    world_x = max(best[1], min(world_x, best[2]))
+    return world_x, surface_y
+
+
+def spawn_teleport_fx(world_x, world_h):
+    free_climb_fx.append({"x": world_x, "y": ground_level - world_h,
+                          "t0": pygame.time.get_ticks() / 1000.0})
+
+
+def draw_teleport_fx(screen):
+    """Expanding white ring where the player just reappeared."""
+    now = pygame.time.get_ticks() / 1000.0
+    for fx in list(free_climb_fx):
+        age = now - fx["t0"]
+        if age > 0.8:
+            free_climb_fx.remove(fx)
+            continue
+        screen_x, screen_y = apply_camera_offset(fx["x"], fx["y"])
+        if (screen_x < -320 or screen_x > WIDTH + 320
+                or screen_y < -320 or screen_y > HEIGHT + 320):
+            continue
+        progress = min(1.0, age / 0.6)
+        radius = int(12 + 150 * (1.0 - (1.0 - progress) ** 2))
+        alpha = int(210 * (1.0 - progress))
+        ring_w, ring_h = radius * 2, max(2, int(radius * 0.4))
+        ring = pygame.Surface((ring_w + 8, ring_h + 8), pygame.SRCALPHA)
+        outer = pygame.Rect(4, 4, ring_w, ring_h)
+        pygame.draw.ellipse(ring, (255, 255, 255, alpha), outer, 2)
+        pygame.draw.ellipse(ring, (150, 220, 255, alpha // 2),
+                            outer.inflate(-10, -6), 2)
+        screen.blit(ring, (int(screen_x) - ring.get_width() // 2,
+                           int(screen_y) - ring.get_height() // 2))
+
+
+def free_climb_teleport_at(pos):
+    """Right-click on the expanded map: put the player on that spot."""
+    global player_x, player_y, player_velocity_x, player_velocity_y
+    global player_is_on_ground, player_ground_platform, camera_x, camera_y
+    global minimap_open, can_throw, mouse_button_down, summit_locked
+    summit_locked = False
+    point = map_point_to_world(pos)
+    if point is None:
+        return False
+    world_x, world_h = point
+    landing = free_climb_landing(world_x, world_h)
+    if landing is not None:
+        world_x, surface_y = landing
+        player_y = surface_y - player_height
+        player_is_on_ground = True
+    else:
+        player_y = (ground_level - world_h) - player_height
+        player_is_on_ground = False
+    player_x = max(MM_WALK_MIN,
+                   min(world_x - player_width / 2.0,
+                       MM_WALK_MAX - player_width))
+    player_velocity_x = 0.0
+    player_velocity_y = 0.0
+    player_ground_platform = None
+    camera_x = player_x - WIDTH // 2 + player_width // 2
+    camera_y = player_y - HEIGHT // 2 + player_height // 2
+    candies.clear()
+    explosions.clear()
+    can_throw = False
+    mouse_button_down = True
+    minimap_open = False
+    spawn_teleport_fx(player_x + player_width / 2.0,
+                      ground_level - (player_y + player_height))
+    sound_manager.play_checkpoint()
+    return True
+
+
+def _wrap_lines(text, text_font, max_width):
+    """Wrap a line of text to max_width (also works for CJK, which has no spaces)."""
+    lines, line = [], ""
+    for word in text.split(" "):
+        candidate = (line + " " + word).strip() if line else word
+        if text_font.size(candidate)[0] <= max_width:
+            line = candidate
+            continue
+        if line:
+            lines.append(line)
+        if text_font.size(word)[0] <= max_width:
+            line = word
+            continue
+        chunk = ""
+        for char in word:
+            if chunk and text_font.size(chunk + char)[0] > max_width:
+                lines.append(chunk)
+                chunk = char
+            else:
+                chunk += char
+        line = chunk
+    if line:
+        lines.append(line)
+    return lines
+
+
+def draw_free_climb_welcome(screen):
+    """First-seconds banner explaining the mode."""
+    if free_climb_hint_timer <= 0.0 or minimap_open:
+        return
+    body_font = _map_font(21)
+    lines = _wrap_lines(i18n.ui("free_climb_welcome"), body_font,
+                        int(WIDTH * 0.60))[:3]
+    alpha = int(255 * min(1.0, free_climb_hint_timer / 1.1))
+    line_h = body_font.get_height() + 3
+    box_w = max(body_font.size(line)[0] for line in lines) + 44
+    box_h = line_h * len(lines) + 16
+    box = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    pygame.draw.rect(box, (14, 18, 40, int(alpha * 0.74)), box.get_rect(),
+                     border_radius=12)
+    pygame.draw.rect(box, (255, 226, 140, int(alpha * 0.5)), box.get_rect(), 1,
+                     border_radius=12)
+    for index, line in enumerate(lines):
+        label = body_font.render(line, True, (240, 244, 255))
+        label.set_alpha(alpha)
+        box.blit(label, label.get_rect(
+            center=(box_w // 2, 8 + line_h * index + label.get_height() // 2)))
+    screen.blit(box, box.get_rect(midtop=(WIDTH // 2, int(HEIGHT * 0.10))))
+
+
+def draw_free_climb_hud(screen, mouse_pos):
+    """Small whole-mountain map in the top-right corner (Free Climb only)."""
+    if not free_climb:
+        return
+    rect = minimap_small_rect()
+    mini = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
+    _draw_climb_map(mini, big=False)
+    mask = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
+    pygame.draw.rect(mask, (255, 255, 255, 255), mask.get_rect(),
+                     border_radius=6)
+    mini.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+    screen.blit(mini, rect.topleft)
+    hovered = (not minimap_open) and rect.collidepoint(mouse_pos)
+    if hovered:
+        pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 180.0)
+        pygame.draw.rect(screen, (255, 226, 140), rect,
+                         2 + int(pulse * 2), border_radius=6)
+        draw_custom_cursor(screen, mouse_pos, True)
+    else:
+        pygame.draw.rect(screen, (150, 170, 210), rect, 2, border_radius=6)
+    tag = _map_font(15).render(i18n.ui("free_climb_tag"), True, (255, 214, 120))
+    tag_rect = tag.get_rect(topright=(rect.right, rect.bottom + 6))
+    tag_rect.clamp_ip(screen.get_rect())
+    screen.blit(tag, tag_rect)
+    draw_free_climb_welcome(screen)
+
+
+def draw_free_climb_map(screen, mouse_pos):
+    """Expanded whole-mountain map: right-click to teleport, left-click to close."""
+    veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    veil.fill((6, 8, 20, 218))
+    screen.blit(veil, (0, 0))
+    panel = minimap_panel_rect()
+    frame = panel.inflate(28, 28)
+    pygame.draw.rect(screen, (14, 18, 40), frame, border_radius=16)
+    pygame.draw.rect(screen, (255, 214, 120), frame, 2, border_radius=16)
+
+    big = pygame.Surface(panel.size, pygame.SRCALPHA)
+    _draw_climb_map(big, big=True)
+    screen.blit(big, panel.topleft)
+
+    # where a right click would land
+    if panel.collidepoint(mouse_pos):
+        point = map_point_to_world(mouse_pos)
+        landing = free_climb_landing(*point) if point is not None else None
+        if landing is not None:
+            land_x, land_y = landing
+            land_h = ground_level - land_y
+            marker_x = panel.x + int((land_x - MM_X0) / (MM_X1 - MM_X0) * panel.w)
+            marker_y = panel.y + int((MM_TOP_H - land_h) / MM_TOP_H * panel.h)
+            pulse = 0.5 + 0.5 * math.sin(pygame.time.get_ticks() / 160.0)
+            pygame.draw.circle(screen, (255, 226, 140), (marker_x, marker_y),
+                               5 + int(pulse * 3), 2)
+            pygame.draw.circle(screen, (255, 255, 255), (marker_x, marker_y), 2)
+
+    title_font = _map_font(26)
+    title = title_font.render(i18n.ui("map_title"), True, (255, 238, 200))
+    screen.blit(title, title.get_rect(midbottom=(panel.centerx, frame.top - 8)))
+    hint_font = _map_font(18)
+    hint = hint_font.render(i18n.ui("map_hint"), True, (222, 230, 250))
+    screen.blit(hint, hint.get_rect(midtop=(panel.centerx, frame.bottom + 8)))
+    tag = hint_font.render(i18n.ui("free_climb_tag"), True, (255, 214, 120))
+    screen.blit(tag, tag.get_rect(
+        midtop=(panel.centerx, frame.bottom + 10 + hint.get_height())))
+    draw_custom_cursor(screen, mouse_pos, True)
 
 
 def run_game():
@@ -4457,7 +5667,28 @@ def run_game():
     global player_entry_time
     global run_mode, checkpoint_index, cursor_toggle, fullscreen_mode
     global mode_dialog_slot, mode_dialog_from
+    global free_climb, minimap_open, free_climb_hint_timer
+    global can_throw, mouse_button_down
+    global profile_edit, pending_delete_profile, profile_notice, profile_notice_timer
+    global profile_page
+    global pending_quit, run_time
+
+    # Hook the tutorial memory to the active profile's folder. flavor.py is
+    # imported by the launcher right before run_game, so it exists by now.
+    flavor_module = sys.modules.get("flavor")
+    if flavor_module is not None:
+        try:
+            flavor_module.set_seen_file(profiles.data_path("tutorial_seen.json"))
+        except Exception:
+            pass
     
+    pending_quit = False
+    profile_edit = None
+    pending_delete_profile = None
+    try:
+        pygame.key.stop_text_input()   # no IME popup unless the name editor is open
+    except Exception:
+        pass
     last_time = pygame.time.get_ticks()
     just_entered_game = False
     
@@ -4499,9 +5730,18 @@ def run_game():
                 sound_manager.set_music_volume(music_volume)
             if voice_changed:
                 voice_volume = voice_slider.value
+
+        if profile_notice_timer > 0.0:
+            profile_notice_timer = max(0.0, profile_notice_timer - dt)
         
         for event in pygame.event.get():
             flavor.handle_event(event)  # FLAVOR
+            if event.type in (pygame.TEXTINPUT, pygame.TEXTEDITING):
+                # IME / text input goes to the profile-name editor
+                if (not pending_quit and current_state == GameState.PROFILES
+                        and profile_edit is not None):
+                    profile_editor_event(event)
+                continue
             if event.type == pygame.MOUSEBUTTONDOWN and getattr(event, "button", 0) == 1 \
                     and current_state == GameState.SETTINGS:  # I18N
                 for _code, _name, _rect in language_button_rects():
@@ -4514,15 +5754,30 @@ def run_game():
                             SaveManager.save_settings(sound_volume, music_volume)
                         break
             if event.type == pygame.QUIT:
-                if (current_state == GameState.PLAYING and not level_cleared
-                        and current_slot is not None):
-                    SaveManager.save_slot(current_slot, player_x, player_y,
-                                      player_velocity_x, player_velocity_y)
-                SaveManager.save_settings(sound_volume, music_volume)
-                running = False
+                if pending_quit:
+                    # a second close request really quits
+                    pending_quit = False
+                    save_before_quit()
+                    running = False
+                else:
+                    pending_quit = True
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
+                if pending_quit:
+                    # the quit dialog is on top: only its two buttons react
+                    if event.button == 1:
+                        yes_rect, no_rect = exit_dialog_rects()
+                        if yes_rect.collidepoint(event.pos):
+                            pending_quit = False
+                            save_before_quit()
+                            running = False
+                        elif no_rect.collidepoint(event.pos):
+                            pending_quit = False
+                    continue
+                if (event.button == 3 and free_climb
+                        and current_state == GameState.PLAYING and minimap_open):
+                    free_climb_teleport_at(event.pos)
+                elif event.button == 1:
                     if current_state == GameState.CUTSCENE:
                         if cutscene_kind != "win":
                             end_cutscene()
@@ -4554,6 +5809,11 @@ def run_game():
                                 if slot is not None:
                                     mode_dialog_slot = slot
                                     mode_dialog_from = GameState.MENU
+                            elif key == "free_climb":
+                                start_free_climb()
+                                current_state = GameState.PLAYING
+                                just_entered_game = True
+                                player_entry_time = pygame.time.get_ticks() / 1000.0
                             elif key == "tutorial":
                                 tutorial_page = 0
                                 current_state = GameState.TUTORIAL
@@ -4562,6 +5822,10 @@ def run_game():
                                 current_state = GameState.SAVES
                             elif key == "achievements":
                                 current_state = GameState.ACHIEVEMENTS
+                            elif key == "profile":
+                                profile_edit = None
+                                pending_delete_profile = None
+                                current_state = GameState.PROFILES
                             elif key == "settings":
                                 current_state = GameState.SETTINGS
                                 selected_slider = None
@@ -4569,7 +5833,7 @@ def run_game():
                                 music_slider.deselect()
                                 voice_slider.deselect()
                             elif key == "exit":
-                                running = False
+                                pending_quit = True
                             break
 
                     elif current_state == GameState.TUTORIAL:
@@ -4634,13 +5898,80 @@ def run_game():
                                     ach_page = i
                                     break
 
+                    elif current_state == GameState.PROFILES:
+                        if profile_edit is not None:
+                            ok_rect, cancel_rect = profile_name_rects()
+                            if ok_rect.collidepoint(event.pos):
+                                commit_profile_editor()
+                            elif cancel_rect.collidepoint(event.pos):
+                                close_profile_editor()
+                        elif pending_delete_profile is not None:
+                            yes_rect, no_rect = profile_delete_rects()
+                            if yes_rect.collidepoint(event.pos):
+                                delete_current_profile()
+                            elif no_rect.collidepoint(event.pos):
+                                pending_delete_profile = None
+                        else:
+                            paged = False
+                            for key, page_rect in profile_page_rects():
+                                if not page_rect.collidepoint(event.pos):
+                                    continue
+                                if key == "prev":
+                                    profile_page = max(0, profile_page - 1)
+                                else:
+                                    profile_page = min(profile_page_count() - 1,
+                                                       profile_page + 1)
+                                paged = True
+                                break
+                            if paged:
+                                pass
+                            else:
+                                for entry, row_rect in profile_rows():
+                                    if row_rect.collidepoint(event.pos):
+                                        if entry.get("id") != profiles.current_id():
+                                            switch_profile(entry.get("id"))
+                                        break
+                                for key, btn_rect in profile_action_rects():
+                                    if not btn_rect.collidepoint(event.pos):
+                                        continue
+                                    if key == "profile_new":
+                                        open_profile_editor("new", new_profile_default_name())
+                                    elif key == "profile_rename":
+                                        open_profile_editor(
+                                            "rename",
+                                            _display_profile_name(
+                                                profiles.current().get("name", "")))
+                                    elif key == "delete":
+                                        if len(profiles.all()) <= 1:
+                                            profile_notice_show(i18n.ui("profile_last_error"))
+                                        else:
+                                            pending_delete_profile = profiles.current()
+                                    else:
+                                        current_state = GameState.MENU
+                                    break
+
                     elif current_state == GameState.PLAYING:
                         back_rect = victory_button_rect()
                         return_button_rect = pygame.Rect(20, 20, 150, 50)
-                        if level_cleared and back_rect.collidepoint(event.pos):
+                        if (level_cleared and free_climb_unlocked()
+                                and free_climb_button_rect().collidepoint(event.pos)):
+                            # straight from the victory screen into the sandbox
+                            start_free_climb()
+                            just_entered_game = True
+                            player_entry_time = pygame.time.get_ticks() / 1000.0
+                        elif free_climb and minimap_open:
+                            # any left click closes the whole-mountain map
+                            minimap_open = False
+                            can_throw = False
+                            mouse_button_down = True
+                        elif free_climb and minimap_small_rect().collidepoint(event.pos):
+                            minimap_open = True
+                            can_throw = False
+                            mouse_button_down = True
+                        elif level_cleared and back_rect.collidepoint(event.pos):
                             current_state = GameState.MENU
                         elif return_button_rect.collidepoint(event.pos):
-                            if not level_cleared:
+                            if not level_cleared and not free_climb:
                                 SaveManager.save_slot(current_slot, player_x, player_y,
                                       player_velocity_x, player_velocity_y)
                             current_state = GameState.MENU
@@ -4760,6 +6091,14 @@ def run_game():
                     just_entered_game = False
             
             elif event.type == pygame.KEYDOWN:
+                if pending_quit:
+                    if event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        pending_quit = False
+                        save_before_quit()
+                        running = False
+                    elif event.key == pygame.K_ESCAPE:
+                        pending_quit = False
+                    continue
                 if current_state == GameState.SETTINGS:
                     # Only the selected slider reacts to the keyboard
                     if selected_slider:
@@ -4820,6 +6159,14 @@ def run_game():
                             else:
                                 music_volume = 1
                                 sound_manager.set_music_volume(1)
+
+                    # Esc leaves the settings screen (like the back button)
+                    if event.key == pygame.K_ESCAPE:
+                        SaveManager.save_settings(sound_volume, music_volume)
+                        current_state = GameState.MENU
+                        if selected_slider:
+                            selected_slider.deselect()
+                            selected_slider = None
                 
                 elif current_state == GameState.CUTSCENE:
                     if cutscene_kind != "win":
@@ -4842,6 +6189,23 @@ def run_game():
                                             tutorial_page + 1)
                     elif event.key == pygame.K_ESCAPE:
                         current_state = GameState.MENU
+                elif current_state == GameState.SAVES:
+                    if event.key == pygame.K_ESCAPE:
+                        pending_delete_slot = None
+                        current_state = GameState.MENU
+                elif current_state == GameState.PROFILES:
+                    if profile_editor_event(event):
+                        pass
+                    elif pending_delete_profile is not None:
+                        if event.key == pygame.K_ESCAPE:
+                            pending_delete_profile = None
+                    elif event.key in (pygame.K_LEFT, pygame.K_a):
+                        profile_page = max(0, profile_page - 1)
+                    elif event.key in (pygame.K_RIGHT, pygame.K_d):
+                        profile_page = min(profile_page_count() - 1,
+                                           profile_page + 1)
+                    elif event.key == pygame.K_ESCAPE:
+                        current_state = GameState.MENU
                 elif current_state == GameState.MENU:
                     # Menu keyboard navigation
                     if mode_dialog_slot is not None:
@@ -4862,27 +6226,44 @@ def run_game():
                                 mode_dialog_slot = slot
                                 mode_dialog_from = GameState.MENU
                     elif event.key == pygame.K_ESCAPE:
-                        running = False
+                        pending_quit = True
                 
                 elif current_state == GameState.PLAYING:
                     # In-game shortcuts
                     if event.key in (pygame.K_LALT, pygame.K_RALT):
                         cursor_toggle = not cursor_toggle
+                    elif event.key == pygame.K_m and free_climb:
+                        minimap_open = not minimap_open
+                        can_throw = False
+                        mouse_button_down = True
                     elif event.key == pygame.K_ESCAPE:
-                        if not level_cleared:
-                            SaveManager.save_slot(current_slot, player_x, player_y,
-                                      player_velocity_x, player_velocity_y)
-                        current_state = GameState.MENU
+                        if minimap_open:
+                            minimap_open = False
+                        else:
+                            if not level_cleared and not free_climb:
+                                SaveManager.save_slot(current_slot, player_x, player_y,
+                                          player_velocity_x, player_velocity_y)
+                            current_state = GameState.MENU
             
             elif event.type == pygame.KEYUP:
                 if current_state == GameState.SETTINGS:
                     # Key released: stop repeat adjustment
                     if selected_slider:
                         selected_slider.handle_keyboard_release(event.key)
+
+        if not running:
+            # quit was confirmed: do not let the loop tick one more frame
+            break
         
         # Leaving the summit / level for the menu restores the normal theme
-        if current_state == GameState.MENU and summit_music_stage != 0:
-            reset_summit_music()
+        if current_state == GameState.MENU:
+            if summit_music_stage != 0:
+                reset_summit_music()
+            if free_climb:
+                # leaving the sandbox: achievements are live again
+                free_climb = False
+                minimap_open = False
+                achievements.set_sandbox(False)
 
         screen.fill(SKY_BLUE)
         if current_state == GameState.PLAYING:  # BACKDROP
@@ -4896,7 +6277,6 @@ def run_game():
             draw_wind(screen)
         
         if current_state == GameState.PLAYING:
-            global mouse_button_down
             player_textures.update(dt, player_is_on_ground, player_facing_right)
             
             for obj in game:
@@ -4915,12 +6295,18 @@ def run_game():
             
             update_player(keys, dt, mouse_pos)
             update_easy_mode(dt)
+            # run timer: paused while the whole-mountain map or the quit dialog
+            # is open, and stopped once the summit cutscene starts
+            if not minimap_open and not level_cleared and not pending_quit:
+                run_time += dt
             flavor.update(dt)  # FLAVOR
             update_voice_queue(dt)
             pull_achievement_toasts()
             update_toasts(dt)
             update_fall_tips(dt)  # repeated-fall encouragement
             summit_msg_timer = max(0.0, summit_msg_timer - dt)  # summit message
+            if free_climb_hint_timer > 0.0:
+                free_climb_hint_timer = max(0.0, free_climb_hint_timer - dt)
             # Random chatter
             global chatter_timer, chatter_text, chatter_life, chatter_last
             if chatter_life > 0:
@@ -4951,27 +6337,36 @@ def run_game():
             draw_candies(screen)
             draw_explosions(screen)
             draw_player(screen, mouse_pos)
+            draw_teleport_fx(screen)  # Free Climb: reappear ring
             
+            map_open = free_climb and minimap_open
             is_ready = can_throw and not just_entered_game
-            draw_hand(screen, mouse_pos, is_ready)
+            if not map_open:
+                draw_hand(screen, mouse_pos, is_ready)
             flavor.draw(screen)  # FLAVOR
             
             # Exit button
             return_button_rect = pygame.Rect(20, 20, 150, 50)
             return_hovered = return_button_rect.collidepoint(mouse_pos)
-            return_color = DARK_GRAY if return_hovered else GRAY
-            pygame.draw.rect(screen, return_color, return_button_rect)
-            pygame.draw.rect(screen, BLACK, return_button_rect, 2)
+            return_color = WHITE if return_hovered else LIGHT_BLUE
+            pygame.draw.rect(screen, return_color, return_button_rect,
+                             border_radius=BTN_RADIUS)
+            pygame.draw.rect(screen, BLACK, return_button_rect, 2,
+                             border_radius=BTN_RADIUS)
             return_surface = small_font.render(i18n.ui("exit").upper(), True, BLACK)
             return_rect_text = return_surface.get_rect(center=return_button_rect.center)
             screen.blit(return_surface, return_rect_text)
+            draw_run_timer(screen)  # current run time, next to the exit button
             
-            draw_aim_preview(screen, mouse_pos, is_ready)  # dotted throw preview
+            if not map_open:
+                draw_aim_preview(screen, mouse_pos, is_ready)  # dotted throw preview
             # Normally there is no pointer while playing (the dotted preview
             # and the force meter show the aim); hold Alt to bring the cursor
             # back, e.g. to look for the exit button.
-            if cursor_toggle:
+            if cursor_toggle and not map_open:
                 draw_custom_cursor(screen, mouse_pos, is_ready)
+            if free_climb:
+                draw_free_climb_hud(screen, mouse_pos)  # small whole-mountain map
             draw_summit_msg(screen)  # summit message
             draw_summit_hint(screen)  # summit hint + text arrow
             draw_chatter(screen)  # random chatter
@@ -4984,7 +6379,8 @@ def run_game():
                 cp_surface = small_font.render(cp_label, True, (255, 226, 140))
                 screen.blit(cp_surface,
                             cp_surface.get_rect(center=(WIDTH // 2, 30)))
-            draw_force_meter(screen, mouse_pos, is_ready)  # throw power
+            if not map_open:
+                draw_force_meter(screen, mouse_pos, is_ready)  # throw power
             if level_cleared:
                 # drawn last: the victory overlay (and its cursor) stays on top
                 draw_victory(screen)
@@ -4993,6 +6389,9 @@ def run_game():
                 veil.fill((0, 0, 0))
                 veil.set_alpha(min(255, respawn_alpha))
                 screen.blit(veil, (0, 0))
+            if map_open:
+                # the expanded map covers everything else
+                draw_free_climb_map(screen, mouse_pos)
             
 
         elif current_state == GameState.CUTSCENE:
@@ -5009,6 +6408,19 @@ def run_game():
                 elif key == "new_game":
                     label = i18n.ui("new_game")
                     enabled = any_empty_slot()
+                elif key == "profile":
+                    try:
+                        name = _display_profile_name(
+                            profiles.current().get("name", "?"))
+                    except Exception:
+                        name = "?"
+                    label = "%s: %s" % (i18n.ui("profiles"), name[:10])
+                    # very long names must not overflow the button
+                    min_font = _profile_name_font(22, label)
+                    if min_font.size(label)[0] > rect.width - 24:
+                        label = i18n.ui("profiles")
+                elif key == "free_climb":
+                    label = i18n.ui("free_climb")
                 else:
                     label = i18n.ui(key)
                 if not enabled:
@@ -5017,9 +6429,14 @@ def run_game():
                 else:
                     color = WHITE if hovered else LIGHT_BLUE
                     text_color = BLACK
-                pygame.draw.rect(screen, color, rect)
-                pygame.draw.rect(screen, BLACK, rect, 2)
-                surface = font.render(label, True, text_color)
+                pygame.draw.rect(screen, color, rect, border_radius=BTN_RADIUS)
+                pygame.draw.rect(screen, BLACK, rect, 2, border_radius=BTN_RADIUS)
+                if key == "profile":
+                    # the label embeds the player's name: CJK / Hangul safe font
+                    surface = _fit_profile_name(label, rect.width - 24, 48,
+                                                text_color)
+                else:
+                    surface = _fit_text(label, rect.width - 24, 48, text_color)
                 screen.blit(surface, surface.get_rect(center=rect.center))
             if mode_dialog_slot is not None:
                 draw_mode_dialog(screen, mouse_pos)
@@ -5034,27 +6451,33 @@ def run_game():
                 data = SaveManager.load_slot(slot)
                 hovered = load_rect.collidepoint(mouse_pos)
                 color = GRAY if not data else (WHITE if hovered else LIGHT_BLUE)
-                pygame.draw.rect(screen, color, load_rect)
-                pygame.draw.rect(screen, BLACK, load_rect, 2)
+                pygame.draw.rect(screen, color, load_rect,
+                                 border_radius=BTN_RADIUS)
+                pygame.draw.rect(screen, BLACK, load_rect, 2,
+                                 border_radius=BTN_RADIUS)
                 if data:
                     label = "%s %d  ·  %s %d m" % (i18n.ui("slot"), slot,
                                                    i18n.ui("height"),
-                                                   data.get("height", 0) // 100)
+                                                   _safe_int(data.get("height", 0)) // 100)
                     if data.get("mode") == "easy":
                         label += "  ·  " + i18n.ui("easy_tag")
                 else:
                     label = "%s %d  ·  %s" % (i18n.ui("slot"), slot, i18n.ui("empty"))
                 surface = font.render(label, True, BLACK if data else DARK_GRAY)
                 screen.blit(surface, surface.get_rect(center=load_rect.center))
-                del_color = GRAY if data else DARK_GRAY
-                pygame.draw.rect(screen, del_color, del_rect)
-                pygame.draw.rect(screen, BLACK, del_rect, 2)
-                xs = font.render("X", True, WHITE if data else DARK_GRAY)
+                del_hot = del_rect.collidepoint(mouse_pos)
+                del_color = (WHITE if del_hot else LIGHT_BLUE) if data else DARK_GRAY
+                pygame.draw.rect(screen, del_color, del_rect,
+                                 border_radius=BTN_RADIUS)
+                pygame.draw.rect(screen, BLACK, del_rect, 2,
+                                 border_radius=BTN_RADIUS)
+                xs = font.render("X", True, BLACK if data else DARK_GRAY)
                 screen.blit(xs, xs.get_rect(center=del_rect.center))
             back = saves_back_rect()
             hovered = back.collidepoint(mouse_pos)
-            pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back)
-            pygame.draw.rect(screen, BLACK, back, 2)
+            pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, back,
+                             border_radius=BTN_RADIUS)
+            pygame.draw.rect(screen, BLACK, back, 2, border_radius=BTN_RADIUS)
             surface = font.render(i18n.ui("back"), True, BLACK)
             screen.blit(surface, surface.get_rect(center=back.center))
             if pending_delete_slot is not None:
@@ -5064,7 +6487,7 @@ def run_game():
                 box = pygame.Rect(0, 0, 640, 250)
                 box.center = (WIDTH // 2, HEIGHT // 2)
                 pygame.draw.rect(screen, (18, 22, 46), box, border_radius=14)
-                pygame.draw.rect(screen, (255, 214, 120), box, 2, border_radius=14)
+                pygame.draw.rect(screen, (225, 110, 105), box, 2, border_radius=14)
                 title = font.render(
                     i18n.ui("delete_save_title").format(n=pending_delete_slot),
                     True, WHITE)
@@ -5073,13 +6496,13 @@ def run_game():
                                          (200, 210, 235))
                 screen.blit(hint, hint.get_rect(center=(WIDTH // 2, box.top + 120)))
                 yes_rect, no_rect = delete_dialog_rects()
-                for rect, key, color in ((yes_rect, "delete", (210, 80, 80)),
-                                         (no_rect, "cancel", (110, 122, 158))):
+                for rect, key in ((yes_rect, "delete"), (no_rect, "cancel")):
                     hot = rect.collidepoint(mouse_pos)
-                    base = color if hot else tuple(max(0, c - 30) for c in color)
-                    pygame.draw.rect(screen, base, rect)
-                    pygame.draw.rect(screen, BLACK, rect, 2)
-                    label = font.render(i18n.ui(key), True, WHITE)
+                    pygame.draw.rect(screen, WHITE if hot else LIGHT_BLUE, rect,
+                                     border_radius=BTN_RADIUS)
+                    pygame.draw.rect(screen, BLACK, rect, 2,
+                                     border_radius=BTN_RADIUS)
+                    label = font.render(i18n.ui(key), True, BLACK)
                     screen.blit(label, label.get_rect(center=rect.center))
             if mode_dialog_slot is not None:
                 draw_mode_dialog(screen, mouse_pos)
@@ -5111,9 +6534,9 @@ def run_game():
             # Fullscreen / windowed
             fs_rect = fullscreen_toggle_rect()
             fs_hot = fs_rect.collidepoint(mouse_pos)
-            fs_color = YELLOW if fullscreen_mode else (WHITE if fs_hot else LIGHT_BLUE)
-            pygame.draw.rect(screen, fs_color, fs_rect)
-            pygame.draw.rect(screen, BLACK, fs_rect, 2)
+            fs_color = WHITE if fs_hot else LIGHT_BLUE
+            pygame.draw.rect(screen, fs_color, fs_rect, border_radius=BTN_RADIUS)
+            pygame.draw.rect(screen, BLACK, fs_rect, 2, border_radius=BTN_RADIUS)
             fs_label = "%s: %s" % (i18n.ui("fullscreen"),
                                    i18n.ui("on") if fullscreen_mode else i18n.ui("off"))
             if fullscreen_mode != launch_fullscreen:
@@ -5128,14 +6551,9 @@ def run_game():
             for code, name, rect in language_button_rects():
                 selected = (code == i18n.current)
                 hovered = rect.collidepoint(mouse_pos)
-                if selected:
-                    color = YELLOW
-                elif hovered:
-                    color = WHITE
-                else:
-                    color = LIGHT_BLUE
-                pygame.draw.rect(screen, color, rect)
-                pygame.draw.rect(screen, BLACK, rect, 2)
+                color = WHITE if (selected or hovered) else LIGHT_BLUE
+                pygame.draw.rect(screen, color, rect, border_radius=BTN_RADIUS)
+                pygame.draw.rect(screen, BLACK, rect, 2, border_radius=BTN_RADIUS)
                 name_surface = i18n.font_for(code, max(14, rect.height - 14)).render(name, True, BLACK)
                 screen.blit(name_surface, name_surface.get_rect(center=rect.center))
             
@@ -5143,13 +6561,21 @@ def run_game():
             return_rect = pygame.Rect(WIDTH // 2 - 150, HEIGHT - 120, 300, 60)
             return_hovered = return_rect.collidepoint(mouse_pos)
             return_color = WHITE if return_hovered else LIGHT_BLUE
-            pygame.draw.rect(screen, return_color, return_rect)
-            pygame.draw.rect(screen, BLACK, return_rect, 2)
-            return_surface = font.render(i18n.ui("return"), True, BLACK)
+            pygame.draw.rect(screen, return_color, return_rect,
+                             border_radius=BTN_RADIUS)
+            pygame.draw.rect(screen, BLACK, return_rect, 2,
+                             border_radius=BTN_RADIUS)
+            return_surface = font.render(i18n.ui("back"), True, BLACK)
             return_rect_text = return_surface.get_rect(center=return_rect.center)
             screen.blit(return_surface, return_rect_text)
             
             draw_custom_cursor(screen, mouse_pos, True)
+
+        elif current_state == GameState.PROFILES:
+            draw_profiles(screen, mouse_pos)
+
+        if pending_quit:
+            draw_exit_dialog(screen, mouse_pos)
         
         pygame.display.flip()
         clock.tick(FPS)
