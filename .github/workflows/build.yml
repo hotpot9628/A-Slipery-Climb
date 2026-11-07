@@ -1,4 +1,4 @@
-name: build
+﻿name: build
 
 # Builds A SLIPERY CLIMB for Windows, macOS and Linux, and the Linux .deb/.rpm.
 # - Actions tab -> build -> Run workflow : builds everything, download the artifacts
@@ -20,9 +20,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pyinstaller pygame
+        run: python -m pip install --upgrade pip "pygame==2.6.1" "pyinstaller==6.22.3"
       - name: Unpack voice clips
         shell: pwsh
         run: Expand-Archive -Path "voice.zip" -DestinationPath "sounds" -Force
@@ -51,9 +51,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pyinstaller pygame
+        run: python -m pip install --upgrade pip "pygame==2.6.1" "pyinstaller==6.22.3"
       - name: Unpack voice clips
         run: unzip -q voice.zip -d sounds
       - name: Build app
@@ -66,8 +66,8 @@ jobs:
             --add-data "tutorial:tutorial" \
             main.py
           PLIST="dist/A Slipery Climb.app/Contents/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.4.1" "$PLIST" || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.4.1" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.5.0" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.5.0" "$PLIST" || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier games.hotpot9628.asliperyclimb" "$PLIST" || true
           cd dist
           cp ../LICENSE.txt ../ART-AND-AUDIO.txt ../THIRD-PARTY-NOTICES.txt .
@@ -86,9 +86,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pyinstaller pygame
+        run: python -m pip install --upgrade pip "pygame==2.6.1" "pyinstaller==6.22.3"
       - name: Unpack voice clips
         run: unzip -q voice.zip -d sounds
       - name: Build folder
@@ -120,9 +120,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.8"
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pyinstaller pygame
+        run: python -m pip install --upgrade pip "pygame==2.6.1" "pyinstaller==6.22.3"
       - name: Unpack voice clips
         run: unzip -q voice.zip -d sounds
       - name: Build folder
