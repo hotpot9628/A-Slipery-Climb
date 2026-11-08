@@ -272,7 +272,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8"><meta name="as-build" content="4501448d6733"><meta name="as-version" content="1.5.1">
+    <meta charset="UTF-8"><meta name="as-build" content="35b62787b33b"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -349,6 +349,57 @@ config = {
     window.as_climb_idle = function () {
         return window.__asStarted !== true;
     };
+
+    // Headless audio control: pygbag creates a Web Audio context for the game
+    // sounds. Suspend it while the start screen is up (or the page is hidden)
+    // so no music/voice leaks before the player actually starts.
+    (function () {
+        var contexts = [];
+        var Orig = window.AudioContext || window.webkitAudioContext;
+        if (Orig) {
+            function Wrapped() {
+                var ctx = new Orig();
+                contexts.push(ctx);
+                try {
+                    if (window.__asStarted !== true || document.hidden) {
+                        ctx.suspend();
+                    }
+                } catch (e) {}
+                return ctx;
+            }
+            Wrapped.prototype = Orig.prototype;
+            window.AudioContext = Wrapped;
+            if (window.webkitAudioContext) window.webkitAudioContext = Wrapped;
+        }
+        window.__asAudioActive = function (active) {
+            contexts.forEach(function (ctx) {
+                try {
+                    if (active) {
+                        if (ctx.state === 'suspended') ctx.resume();
+                    } else if (ctx.state === 'running') {
+                        ctx.suspend();
+                    }
+                } catch (e) {}
+            });
+        };
+        function sync() {
+            var active = window.__asStarted === true && !document.hidden;
+            window.__asAudioActive(active);
+        }
+        document.addEventListener('visibilitychange', sync);
+        document.addEventListener('pointerdown', function () {
+            if (window.__asStarted !== true) {
+                setTimeout(sync, 80);   // pygbag may try to resume on any tap
+            }
+        }, true);
+        setInterval(function () {
+            if (window.__asStarted !== true) sync();
+        }, 500);
+        window.__asAudioSync = sync;
+        window.__asAudioState = function () {
+            return contexts.map(function (ctx) { return ctx.state; });
+        };
+    })();
 </script>
 <script>
     // Running inside the installed APK / home-screen app: no browser UI around us.
@@ -842,6 +893,7 @@ frameborder="1"
                 if (started) return;
                 started = true;
                 window.__asStarted = true;
+                if (window.__asAudioSync) window.__asAudioSync();
                 var boot = document.getElementById('site');
                 if (boot && boot.getAttribute('type') === 'text/x-deferred') {
                     var loader = document.createElement('script');
