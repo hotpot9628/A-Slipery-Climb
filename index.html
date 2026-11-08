@@ -1,0 +1,909 @@
+<html lang="en-us"><script src="./pythons.js" type=module id="site" data-python="cpython3.11" data-os="vtx,fs,snd,gui" async defer>#<!--
+
+print("""
+Loading src from src.apk
+    Pygbag Version : 0.8.6
+    Template Version : 0.8.3
+    Python  : 3.11
+    CDN URL : ./
+    Screen  : 1280x720
+    Title   : src
+    Folder  : src
+    Authors : pgw
+    SPDX-License-Identifier: cookiecutter.spdx
+
+""")
+
+
+# screen pixels (real, hardware)
+WIDTH=1024  # 1280
+HEIGHT=600  # 720
+
+# reference/idealized screen pixels
+REFX = 1980
+REFY = 1080
+
+def u(real, ref, v):
+    if abs(v)<0.9999999:
+        result = int( (float(real)/100.0) * (v*1000))
+        if v<0:
+            return real-result
+        return result
+    return int( (real/ref) * v )
+
+def ux(*argv):
+    global WIDTH, REFX
+    acc = 0
+    for v in argv:
+        acc += u(WIDTH, REFX, v)
+    return acc
+
+def uy(*argv):
+    global HEIGHT, REFY
+    acc = 0
+    for v in argv:
+        acc += u(HEIGHT, REFY, v)
+    return acc
+
+
+
+
+# do not rename
+async def custom_site():
+
+    import sys
+    import asyncio
+    import platform
+    import json
+    from pathlib import Path
+
+
+
+    import embed
+
+
+    platform.document.body.style.background = "#7f7f7f"
+
+    import pygame
+
+    def compose():
+        pygame.display.update()
+        window.chromakey(None, *screen.get_colorkey(), 40)
+
+    pygame.init()
+    pygame.font.init()
+
+    screen = pygame.display.set_mode([ux(.100),uy(.100)], pygame.SRCALPHA, 32)
+    screen.set_colorkey( (0,0,0,0), pygame.RLEACCEL )
+    screen.fill( (0,0,0,0) )
+
+    compose()
+
+    platform.window.transfer.hidden = true
+    platform.window.canvas.style.visibility = "visible"
+
+
+
+    apk = "src.apk"
+
+    bundle = "src"
+
+    # the C or js loader could do that but be explicit.
+    appdir = Path(f"/data/data/{bundle}") # /data/data/src
+    appdir.mkdir()
+
+
+    # mount apk
+
+    cfg = {
+        "io": "url",
+        "type":"mount",
+        "mount" : {
+            "point" : appdir.as_posix(),
+            "path" : "/",
+        },
+        "path" : f"/ => {appdir.as_posix()}",
+    }
+
+
+    track = platform.window.MM.prepare(apk, json.dumps(cfg))
+
+    marginx = ux(.020) # 20%
+    marginy = uy(.045) # 45%
+
+
+    def pg_bar(pos):
+        nonlocal marginx, marginy
+        # resolution of progress bar, recalculate since it may not be know yet.
+        total = track.len or 10  # avoid div0
+        slot = ux(.060)/ total # 60%
+
+        pygame.draw.rect(screen,(10,10,10),( marginx-ux(10), marginy-uy(10), (total*slot)+ux(20), uy(110) ) )
+        pygame.draw.rect(screen,(0,255,0), ( marginx, marginy, track.pos*slot, uy(90)) )
+
+    # wait until zip mount + overlayfs is complete
+    while not track.ready:
+        pg_bar(track.pos)
+        compose()
+        await asyncio.sleep(.1)
+
+    # fill it up in case it was cached and instant download
+    pg_bar(track.len)
+    compose()
+
+
+    # preloader will change dir and prepend it to sys.path
+    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
+
+
+    # wait preloading complete
+    # that includes images and wasm compilation of bundled modules
+    while embed.counter()<0:
+        await asyncio.sleep(.1)
+
+    main = appdir / "assets" / "main.py"
+
+    # start async top level machinery and add a console.
+    await TopLevel_async_handler.start_toplevel(platform.shell, console=window.python.config.debug)
+
+    # now that apk is mounted we have access to font cache
+    # but we need to fill __file__ that is not yet set
+    __import__(__name__).__file__ = str(main)
+
+
+    # now make a prompt
+    fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
+
+    def ui_callback(pkg, error=None):
+        nonlocal fnt
+        if error:
+            prompt = fnt.render(f"{error}", True, "black")
+        else:
+            prompt = fnt.render(f"Setting [{pkg}] up", True, "black")
+        pg_bar(track.len)
+        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
+        compose()
+
+    # test/wait if user media interaction required
+    if not platform.window.MM.UME:
+
+        # now make a prompt
+        fnt = pygame.sysfont.SysFont("freesans",  uy(80) )
+        prompt = fnt.render(" ", True, "blue")
+        pg_bar(track.len)
+        screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
+        compose()
+        print("""
+        * Waiting for media user engagement : please click/touch page *
+    """)
+        while not platform.window.MM.UME:
+            await asyncio.sleep(.1)
+
+    # cleanup
+    screen.fill( (0,0,0,0) )
+    pygame.display.flip()
+
+    await shell.runpy(main, callback=ui_callback)
+
+
+
+import asyncio
+
+asyncio.run( custom_site() )
+
+
+
+
+
+
+
+
+
+
+
+
+# BEGIN BLOCK
+#
+# now this is the html part you can (and should) customize
+# It is not mandatory : pygame-script when it reads the first line (also called
+# shebang ) of above code create absolute minimal widget set
+# required for running with default rules
+#
+# do not alter that comment block it is separating python code from html code
+# =============================================================================
+# --></script><head><!--
+//=============================================================================
+//
+//
+//
+//
+//
+//
+//
+
+    {%- if cookiecutter.comment != "" -%}
+{{cookiecutter.comment}}
+    {% endif %}
+
+--><script type="application/javascript">
+// END BLOCK
+
+
+
+// this dict is available under PyConfig.config from __main__
+
+config = {
+    xtermjs : "1" ,
+    _sdl2 : "canvas",
+    user_canvas : 0,
+    user_canvas_managed : 0,
+    ume_block : 1,
+    can_close : 0,
+    archive : "src",
+    gui_debug : 3,
+    cdn : "./",
+    autorun : 0,
+    PYBUILD : "3.11"
+}
+
+</script>
+
+    <title>src</title>
+    <meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<script>
+    // lets browsers offer "install app / add to home screen" (desktop icon)
+    if ('serviceWorker' in navigator
+            && location.protocol.indexOf('http') === 0) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+    }
+</script>
+<style>
+  html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  #as-rotate { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #as-rotate {
+      display: flex; position: fixed; inset: 0; z-index: 300;
+      align-items: center; justify-content: center; flex-direction: column;
+      background: radial-gradient(circle at 50% 40%, #1b2350 0%, #0b0f24 70%);
+      color: #e8eeff; font-family: "Segoe UI", arial, sans-serif;
+      text-align: center; letter-spacing: 2px;
+    }
+    #as-rotate .icon { font-size: 64px; margin-bottom: 18px; animation: as-tilt 2s ease-in-out infinite; }
+    #as-rotate .big { font-size: 22px; margin-bottom: 8px; }
+    #as-rotate .small { font-size: 14px; color: #93a9dc; }
+  }
+  @keyframes as-tilt { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+</style>
+<div id="as-rotate">
+  <div class="icon">&#128241;</div>
+  <div class="big">请把手机横过来</div>
+  <div class="small">Rotate your phone to landscape</div>
+</div>
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="height=device-height, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+
+    <link rel="prefetch" href="./pythonrc.py">
+    <link rel="prefetch" href="./vt/xterm.js">
+    <link rel="prefetch" href="./vt/xterm-addon-image.js">
+    <link rel="prefetch" href="./vt/xterm-addon-image.js">
+
+
+    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
+
+    <style>
+        #status {
+            display: inline-block;
+            vertical-align: top;
+            margin-top: 20px;
+            margin-left: 30px;
+            font-weight: bold;
+            color: rgb(120, 120, 120);
+        }
+
+        #progress {
+            height: 20px;
+            width: 300px;
+        }
+
+        div.emscripten { text-align: center; }
+        div.emscripten_border { border: 1px solid black; }
+        div.thick_border { border: 4px solid black; }
+
+        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+        /* average size of droid screen 470dp x 320dp  */
+        canvas.emscripten {
+            border: 0px none;
+            background-color: transparent;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+
+            padding: 0;
+            margin: 0 auto;
+
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        body {
+            font-family: arial;
+            margin: 0;
+            padding: none;
+            background-color:#0b0f24;
+        }
+
+        .topright{
+           position:absolute;
+           top:0px;
+           right:0px;
+        }
+
+        .bottomright {
+            position:absolute;
+            top: 40%;
+            right: 0px;
+        }
+
+        .center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trinfo{
+           position:relative;
+           right:0px;
+           border: 1px solid black;
+        }
+
+        .framed{
+           position:relative;
+           top:150px;
+           right:10px;
+           border: 1px solid black;
+        }
+    </style>
+
+    <script src=".//browserfs.min.js"></script>
+
+</head>
+
+<body>
+
+    <div id="transfer" align=center>
+<!--        <div class="spinner" id='spinner'></div> -->
+        <div class="emscripten" id="status">Downloading...</div>
+        <div class="emscripten">
+            <progress value="0" max="100" id="progress"></progress>
+        </div>
+    </div>
+
+
+    <canvas class="emscripten" id="canvas"
+width="1px"
+height="1px"
+    oncontextmenu="event.preventDefault()" tabindex=1>
+    </canvas>
+
+    <div id=html></div>
+
+    <div id=crt  class=bottomright >
+
+        <div id="system" hidden>
+            <div class="button-container">
+                <button id="aiostop" disabled>AIO ⏏︎</button>
+                <button id="aiopaused_true" disabled>AIO ■</button>
+                <button id="aiopaused_false" disabled>AIO ▶</button>
+                <button id="pygame_mixer_music_pause" disabled>Music ■</button>
+            </div>
+
+            <div class="button-container">
+                <div id=load_min>min</div>
+                <div id=load_avg>avg</div>
+                <div id=load_max>max</div>
+              <button id="load_rst" disabled>RESET</button>
+            </div>
+
+            <div id="level">(battery level unknown)</div>
+            <div id="stateBattery">(charging state unknown)</div>
+
+        </div>
+
+        <div id=box class="emscripten_border" hidden=true>
+
+            <div id="info" class="trinfo"></div>
+
+            <iframe id="iframe" class="framed" name="iframe"
+width="470px" height="90%"
+allowtransparency="true"
+style="z-index: 10; style="background: #FFFFFF;"
+frameborder="1"
+                allowfullscreen="true"
+                webkitallowfullscreen="true"
+                msallowfullscreen="true"
+                mozallowfullscreen="true"
+                sandbox="allow-same-origin allow-top-navigation allow-scripts allow-pointer-lock"
+                allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
+                src="./empty.html"
+                scrolling="yes">
+            </iframe>
+        </div>
+
+    </div>
+
+
+    <div id="dlg" hidden>
+        <input type="file" id="dlg_multifile" multiple accept="image/*">
+        <label for="dlg_multifile">Select files</label>
+    </div>
+
+    <div id="pyconsole">
+        <div id="terminal" tabIndex=1 align="left"></div>
+    </div>
+
+    <script type="application/javascript">
+
+    async function custom_onload(debug_hidden) {
+        // this is called before anythinh python is loaded
+        // make your js customization here
+        console.log(__FILE__, "custom_onload")
+
+        pyconsole.hidden = debug_hidden
+        system.hidden = debug_hidden
+        transfer.hidden = debug_hidden
+        info.hidden = debug_hidden
+        box.hidden =  debug_hidden
+    }
+
+    function custom_prerun(){
+        // no python main and no (MEMFS + VFS) yet.
+        console.log(__FILE__, "custom_prerun")
+
+    }
+
+    function custom_postrun(){
+        // python main and no VFS filesystem yet.
+        console.log(__FILE__, "custom_postrun")
+
+    }
+
+    function debug() {
+        // allow to gain access to dev tools from js console
+        // but only on desktop. difficult to reach when in iframe
+        python.config.debug = true
+        custom_onload(false)
+        Module.PyRun_SimpleString("shell.uptime()")
+        window_resize()
+    }
+
+    function info_inline(data){
+        document.getElementById("info").innerHTML = data
+    }
+
+    function info_online(url) {
+        // display info about current APK
+        fetch( url /*, options */)
+            .then((response) => response.text())
+            .then((html) => {
+                info_inline(html);
+        })
+        .catch((error) => {
+            console.warn(error);
+        });
+    }
+
+    function frame_online(url) {
+        window.frames["iframe"].location = url;
+    }
+
+    </script>
+
+
+    <style>
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0f24; }
+        #as-gate {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background:
+                radial-gradient(1200px 700px at 50% 18%, #22306b 0%, #121838 45%, #0b0f24 100%);
+            font-family: "Segoe UI", arial, sans-serif;
+            transition: opacity .45s ease;
+        }
+        #as-gate.hidden { opacity: 0; pointer-events: none; }
+        #as-gate:before {
+            content: ""; position: absolute; inset: 0; pointer-events: none;
+            background-image:
+                radial-gradient(2px 2px at 12% 22%, #ffffff55 50%, transparent 51%),
+                radial-gradient(2px 2px at 78% 14%, #ffffff44 50%, transparent 51%),
+                radial-gradient(1.5px 1.5px at 62% 38%, #ffffff33 50%, transparent 51%),
+                radial-gradient(2px 2px at 28% 72%, #ffffff2a 50%, transparent 51%),
+                radial-gradient(1.5px 1.5px at 88% 66%, #ffffff30 50%, transparent 51%),
+                radial-gradient(1.5px 1.5px at 45% 84%, #ffffff24 50%, transparent 51%);
+        }
+        #as-gate .title {
+            position: relative; color: #f4f7ff;
+            font-size: clamp(26px, 4.6vw, 60px);
+            font-weight: 800; letter-spacing: 6px; margin-bottom: 6px;
+            text-align: center;
+            text-shadow: 0 4px 26px rgba(120, 160, 255, .45);
+        }
+        #as-gate .subtitle {
+            position: relative; color: #8fa3d6;
+            font-size: clamp(12px, 1.5vw, 16px);
+            letter-spacing: 2px; margin-bottom: 30px; text-align: center;
+        }
+        #as-gate .frame {
+            position: relative; display: flex; align-items: center;
+            justify-content: center; cursor: pointer; margin: 0;
+        }
+        #as-gate img {
+            width: min(58vw, 560px); max-height: 44vh; object-fit: contain;
+            border-radius: 18px; display: block;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, .6), 0 0 0 2px rgba(173,216,230,.28);
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        #as-gate .frame:hover img {
+            transform: translateY(-3px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, .65), 0 0 0 2px rgba(173,216,230,.5);
+        }
+        #as-gate .play {
+            position: absolute; width: clamp(66px, 8.5vw, 100px); aspect-ratio: 1;
+            border-radius: 50%; background: rgba(173, 216, 230, .95);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, .5), 0 0 0 6px rgba(173,216,230,.16);
+            transition: transform .15s ease, background .15s ease;
+        }
+        #as-gate .frame:hover .play { transform: scale(1.07); background: #fff; }
+        #as-gate .play:after {
+            content: ""; display: block; margin-left: 8%;
+            border-left: calc(clamp(66px, 8.5vw, 100px) * 0.30) solid #141832;
+            border-top: calc(clamp(66px, 8.5vw, 100px) * 0.19) solid transparent;
+            border-bottom: calc(clamp(66px, 8.5vw, 100px) * 0.19) solid transparent;
+        }
+        #as-gate.loading .play:after { display: none; }
+        #as-gate.loading .play {
+            background: transparent; border: 4px solid rgba(173,216,230,.25);
+            border-top-color: #add8e6; animation: as-spin 1s linear infinite;
+        }
+        @keyframes as-spin { to { transform: rotate(360deg); } }
+        #as-gate .status {
+            position: relative; color: #c9d4f2;
+            font-size: clamp(13px, 1.7vw, 18px);
+            margin-top: 26px; letter-spacing: 1px; text-align: center;
+            min-height: 24px;
+        }
+        #as-gate .status small { color: #8598c4; display: block; margin-top: 6px; }
+        #as-fs {
+            position: fixed; top: 10px; right: 12px; z-index: 120;
+            display: none; padding: 6px 12px; border-radius: 8px;
+            background: rgba(20, 24, 50, .55); color: #cfe0ff;
+            border: 1px solid rgba(173, 216, 230, .35);
+            font: 14px "Segoe UI", arial, sans-serif; cursor: pointer;
+            user-select: none; -webkit-user-select: none;
+        }
+        #as-fs:hover { background: rgba(40, 52, 96, .75); }
+        @media (pointer: coarse) { #as-fs { display: block; } }
+        :fullscreen #as-fs, :-webkit-full-screen #as-fs { display: none !important; }
+        #as-gate .footer {
+            position: absolute; bottom: 18px; width: 100%; text-align: center;
+            color: #5f719c; font-size: clamp(11px, 1.2vw, 13px); letter-spacing: 1px;
+        }
+        #as-gate .footer a { color: #93a9dc; text-decoration: none; }
+        #as-gate .footer a:hover { color: #cfdcff; }
+        #as-download {
+            position: relative; display: flex; align-items: center; gap: 10px;
+            margin-top: 20px;
+        }
+        #as-download a {
+            display: inline-block; padding: 10px 20px; border-radius: 12px;
+            text-decoration: none; font-weight: bold; letter-spacing: .5px;
+            color: #101530; background: #add8e6; font-size: clamp(13px, 1.5vw, 16px);
+            border: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+        }
+        #as-download a:hover { background: #fff; }
+        #as-download small { color: #8fa3d6; font-size: clamp(11px, 1.3vw, 13px); }
+        #as-install {
+            position: relative; display: none; align-items: center; gap: 12px;
+            margin-top: 18px; padding: 10px 14px 10px 16px;
+            border-radius: 14px; max-width: min(78vw, 640px);
+            background: rgba(22, 28, 58, .86);
+            border: 1px solid rgba(140, 170, 235, .35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            color: #dce6ff; font-size: clamp(12px, 1.5vw, 15px);
+            letter-spacing: .5px; text-align: left;
+        }
+        #as-install.show { display: flex; }
+        #as-install .txt small { display: block; margin-top: 3px; color: #93a7d4;
+            font-size: clamp(11px, 1.3vw, 13px); }
+        #as-install button {
+            flex: none; cursor: pointer; border: 0; border-radius: 10px;
+            padding: 9px 16px; font: inherit; font-weight: bold;
+            color: #101530; background: #add8e6;
+        }
+        #as-install button:hover { background: #fff; }
+        #as-install .x {
+            flex: none; cursor: pointer; border: 0; background: transparent;
+            color: #7f92bf; font-size: 18px; line-height: 1; padding: 4px 2px;
+        }
+        #as-install .x:hover { color: #dfe8ff; }
+    </style>
+
+    <div id="as-gate">
+        <div class="title">A SLIPERY CLIMB</div>
+        <div class="subtitle">SUMMIT · 1.5.1</div>
+        <div class="frame" id="as-play">
+            <img src="cover.png" alt="A SLIPERY CLIMB">
+            <div class="play"></div>
+        </div>
+        <div class="status" id="as-status">
+            点击开始 · Click to start
+            <small>浏览器需要一次点击才能播放声音</small>
+        </div>
+        <div id="as-download">
+            <a id="as-dl" href="#" target="_blank" rel="noopener">下载</a>
+            <small id="as-dl-note"></small>
+        </div>
+        <div id="as-install">
+            <div class="txt" id="as-install-txt">
+                安装到桌面 · Install app
+                <small>全屏运行、手机横屏、下次一点就开</small>
+            </div>
+            <button id="as-install-btn" type="button">安装 / Install</button>
+            <button class="x" id="as-install-x" type="button"
+                    title="not now">&#10005;</button>
+        </div>
+        <div class="footer">
+            made with Python &amp; pygame ·
+            <a href="https://github.com/hotpot9628/A-Slipery-Climb"
+               target="_blank">GitHub</a>
+        </div>
+    </div>
+    <div id="as-fs" title="Fullscreen / 全屏">&#9974; 全屏</div>
+    <script>
+        (function () {
+            var gate = document.getElementById('as-gate');
+            var status = document.getElementById('as-status');
+            var started = false;
+            function isPhone() {
+                return (navigator.maxTouchPoints > 0)
+                    && window.matchMedia
+                    && window.matchMedia('(pointer: coarse)').matches;
+            }
+            function lockLandscape() {
+                var so = screen.orientation || screen.mozOrientation
+                    || screen.msOrientation;
+                if (so && so.lock) {
+                    try {
+                        var p = so.lock('landscape');
+                        if (p && p.catch) p.catch(function () {});
+                    } catch (e) {}
+                }
+            }
+            function goFullscreen() {
+                if (!isPhone()) return;
+                var el = document.documentElement;
+                var fn = el.requestFullscreen || el.webkitRequestFullscreen
+                    || el.webkitRequestFullScreen || el.msRequestFullscreen;
+                if (!fn) { lockLandscape(); return; }
+                try {
+                    var res = fn.call(el, {navigationUI: 'hide'});
+                    if (res && res.then) {
+                        res.then(lockLandscape).catch(function () { lockLandscape(); });
+                    } else {
+                        lockLandscape();
+                    }
+                } catch (e) { lockLandscape(); }
+            }
+            function begin() {
+                if (started) return;
+                started = true;
+                gate.classList.add('loading');
+                status.innerHTML = '加载中… · Loading…'
+                    + '<small>第一次加载需要一点时间</small>';
+            }
+            var startArea = document.getElementById('as-play');
+            if (startArea) {
+                startArea.addEventListener('pointerdown', begin);
+                startArea.addEventListener('touchstart', begin);
+            }
+            document.addEventListener('keydown', begin);
+
+            // pygbag starts Python on ANY page gesture; until the player taps the
+            // cover, swallow gestures outside it so the game cannot start from
+            // the background. Capture phase runs before pygbag's listeners.
+            function blockOutsideStart(evt) {
+                if (started || !startArea) return;
+                var target = evt.target;
+                if (target === startArea || startArea.contains(target)) return;
+                evt.preventDefault();
+                evt.stopImmediatePropagation();
+                evt.stopPropagation();
+            }
+            ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(
+                function (evtName) {
+                    window.addEventListener(evtName, blockOutsideStart, true);
+                });
+            window.as_climb_ready = function () {
+                if (!gate) return;
+                gate.classList.add('hidden');
+                setTimeout(function () { gate.style.display = 'none'; }, 500);
+            };
+            var fsBtn = document.getElementById('as-fs');
+            function updateFsButton() {
+                if (!fsBtn) return;
+                var active = !!(document.fullscreenElement
+                    || document.webkitFullscreenElement);
+                fsBtn.style.display = active ? 'none' : '';
+            }
+            if (fsBtn) {
+                fsBtn.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    goFullscreen();
+                    setTimeout(updateFsButton, 600);
+                });
+                document.addEventListener('fullscreenchange', updateFsButton);
+                document.addEventListener('webkitfullscreenchange', updateFsButton);
+            }
+
+            // ---------- download the native build for this device ----------
+            (function () {
+                var dl = document.getElementById('as-dl');
+                var note = document.getElementById('as-dl-note');
+                if (!dl) return;
+                var rawUa = navigator.userAgent || '';
+                var plat = (navigator.platform || '');
+                var rel = 'https://github.com/hotpot9628/A-Slipery-Climb/releases/latest/download/';
+                var all = 'https://github.com/hotpot9628/A-Slipery-Climb/releases/latest';
+                var label = '所有版本';
+                var file = '';
+                var hint = '桌面版可离线游玩';
+                var mobile = /Android|iPhone|iPad|iPod/i.test(rawUa)
+                    || navigator.maxTouchPoints > 0 && /Mobi/i.test(rawUa);
+                if (/Android/i.test(rawUa)) {
+                    label = '下载 Android 版';
+                    file = 'ASliperyClimb_Android.apk';
+                    hint = '手机安装包，可离线';
+                } else if (/Windows/i.test(rawUa) || /Win/i.test(plat)) {
+                    label = '下载 Windows 版';
+                    file = 'ASliperyClimb_Windows.zip';
+                } else if (/Macintosh|Mac OS X/i.test(rawUa)) {
+                    label = '下载 macOS 版';
+                    file = 'ASliperyClimb_macOS.zip';
+                } else if (/Linux/i.test(rawUa) || /Linux/i.test(plat)) {
+                    label = '下载 Linux 版';
+                    file = 'ASliperyClimb_Linux.tar.gz';
+                    hint = 'deb / rpm 见 Releases';
+                } else if (mobile) {
+                    label = '下载 Android 版';
+                    file = 'ASliperyClimb_Android.apk';
+                }
+                dl.textContent = label;
+                dl.href = file ? (rel + file) : all;
+                if (note) note.textContent = hint;
+            })();
+
+            // ---------- "add to home screen" recommendation ----------
+            var installBox = document.getElementById('as-install');
+            var installBtn = document.getElementById('as-install-btn');
+            var installTxt = document.getElementById('as-install-txt');
+            var installX = document.getElementById('as-install-x');
+            var installEvent = null;
+            var _ua = navigator.userAgent || '';
+            var _ios = /iPad|iPhone|iPod/.test(_ua)
+                || (navigator.platform === 'MacIntel'
+                    && navigator.maxTouchPoints > 1);
+            var _android = /Android/i.test(_ua);
+            var _edge = /EdgA?\//i.test(_ua) || /Edg\//i.test(_ua);
+
+            function installedAlready() {
+                try {
+                    return window.matchMedia('(display-mode: fullscreen)').matches
+                        || window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone === true;
+                } catch (e) { return false; }
+            }
+            function installDismissed() {
+                try {
+                    return window.localStorage.getItem('as_install_x') === '1';
+                } catch (e) { return false; }
+            }
+            function showInstallCard() {
+                if (!installBox || installedAlready() || installDismissed()) return;
+                installBox.classList.add('show');
+            }
+            function hideInstallCard() {
+                if (installBox) installBox.classList.remove('show');
+            }
+            function useInstructions() {
+                if (!installTxt) return;
+                if (_ios) {
+                    installTxt.innerHTML = '添加到主屏幕 · Add to Home Screen'
+                        + '<small>点浏览器下方「分享」→「添加到主屏幕」，以后从图标全屏打开</small>';
+                } else if (_android) {
+                    installTxt.innerHTML = '添加桌面图标 · Add to Home Screen'
+                        + '<small>点浏览器右上角「…」菜单 →「添加到主屏幕」或「安装应用」</small>';
+                } else {
+                    installTxt.innerHTML = '安装到桌面 · Install app'
+                        + '<small>使用浏览器地址栏里的安装图标即可</small>';
+                }
+                if (installBtn) installBtn.style.display = 'none';
+                showInstallCard();
+            }
+
+            window.addEventListener('beforeinstallprompt', function (evt) {
+                if (!isPhone()) { return; }
+                evt.preventDefault();
+                installEvent = evt;
+                if (_edge) {
+                    // Edge Android's programmatic prompt opens system settings
+                    // instead of installing: show the menu instructions.
+                    useInstructions();
+                    return;
+                }
+                if (installTxt) {
+                    installTxt.innerHTML = '安装到桌面 · Install app'
+                        + '<small>全屏运行、手机横屏、下次一点就开</small>';
+                }
+                if (installBtn) installBtn.style.display = '';
+                showInstallCard();
+            });
+            if (_ios && !installedAlready() && !installDismissed()) {
+                useInstructions();
+            }
+            if (installBtn) {
+                installBtn.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    if (!installEvent) { useInstructions(); return; }
+                    var prompted = installEvent;
+                    installEvent = null;
+                    try {
+                        prompted.prompt();
+                        if (prompted.userChoice && prompted.userChoice.then) {
+                            prompted.userChoice.then(function (choice) {
+                                if (choice && choice.outcome === 'accepted') {
+                                    hideInstallCard();
+                                }
+                            }).catch(function () {
+                                useInstructions();
+                            });
+                        }
+                    } catch (e) {
+                        useInstructions();
+                    }
+                });
+            }
+            if (installX) {
+                installX.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    hideInstallCard();
+                    try {
+                        window.localStorage.setItem('as_install_x', '1');
+                    } catch (e) {}
+                });
+            }
+            window.addEventListener('appinstalled', hideInstallCard);
+        })();
+    </script>
+
+</body>
+</html>
