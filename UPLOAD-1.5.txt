@@ -1,85 +1,82 @@
-A SLIPERY CLIMB — files to upload for release 1.5.0 "SUMMIT"
-=============================================================
+﻿A SLIPERY CLIMB · SUMMIT — 1.5.0  上传与发布说明
+================================================
 
-This is the FIRST OFFICIAL RELEASE. Everything before it (1.0 – 1.4.1) is
-marked as pre-release.
+这是 1.5.0 的完整上传包：26 个文件，分 4 个文件夹，目标路径都写在下面。
+所有文件都已和项目目录逐个做过 SHA256 校验（见 _SHA256SUMS.txt）。
 
-UPLOAD / OVERWRITE (code + docs)
+这次的 1.5.0 是“重发的正式版”：和之前已经发过的 1.5.0 相比，多了
+**启动时检查更新**的功能（主菜单提示新版本 + 打开下载页）。所以要先把
+旧的 1.5.0 发布和 tag 删掉，再用同一个 v1.5.0 tag 重新发布。
+
+一、先删掉旧的 1.5.0（发布和 tag 都要删）
+-----------------------------------------
+1. Releases -> 打开 1.5.0 -> Delete release（确认删除）
+2. 仓库页 -> Tags -> 找到 v1.5.0 -> 右侧 ... -> Delete tag
+   （只删 Release 不够：tag 还在的话不能用同一个 v1.5.0 再发一次）
+3. 如果已经有 Actions 在跑 1.5.0，等它结束或取消，避免旧产物覆盖
+
+二、上传到仓库（GitHub 网页版）
 --------------------------------
-main.py                 (Free Climb sandbox + whole-mountain map, profiles screen,
-                         run timer, quit confirmation, Esc/button/text fixes)
-achievements.py         (profile switching hooks + SANDBOX flag)
-flavor.py               (profile switching hook)
-i18n.py                 (18 new UI strings in 9 languages)
-profiles.py             (NEW FILE — local player profiles)
-version_info.txt        (1.5.0)
-release-notes.md        (1.5.0 notes: EN / 中文 / Русский)
-README.md               (1.5 features, Free Climb controls, profile data layout)
-BUILDING.md             (profiles.py, profile data layout, release checklist)
-requirements.txt        (pinned pygame 2.6.1 / PyInstaller 6.22.3, Python 3.8+)
-build.bat               (local Windows build: Python 3.8+)
-.github/workflows/build.yml   (macOS Info.plist 1.5.0, Python 3.8 builds)
-.gitignore              (ignore local profiles.json / profiles/)
-screenshots/freeclimb_map.png   (NEW, used by README)
-screenshots/profiles.png        (NEW, used by README)
-store/github_readme.md          (mirror of README.md)
-store/github_release_notes.md   (mirror of release-notes.md)
-store/description_en.txt
-store/description_zh.txt
-store/description_ru.txt
-store/README.txt
-store/announce_ru.txt
-store/shot_freeclimb.png        (NEW, store screenshot)
-store/shot_profiles.png         (NEW, store screenshot)
-UPLOAD-1.5.txt
+1-root/  ->  仓库根目录
+   main.py                       (覆盖，1.5.0：新增启动时更新检查)
+   achievements.py               (覆盖，和上次 1.5 相同)
+   flavor.py                     (覆盖，和上次 1.5 相同)
+   i18n.py                       (覆盖，更新提示的 9 语言文案)
+   updater.py                    (★新文件，仓库里还没有，Add file -> Upload files)
+   profiles.py                   (覆盖，1.5 已传过)
+   version_info.txt              (覆盖，1.5.0)
+   release-notes.md              (覆盖，1.5.0 说明 + 更新提示：EN/中文/Русский)
+   README.md                     (覆盖，1.5 功能 + 更新提示)
+   BUILDING.md                   (覆盖，updater.py 和测试用环境变量)
+   requirements.txt              (覆盖，pygame 2.6.1 / PyInstaller 6.22.3)
+   build.bat                     (覆盖，本地构建：Python 3.8+)
+   .gitignore                    (覆盖，忽略本地 profiles.json / profiles/)
+   UPLOAD-1.5.txt                (覆盖/可选)
 
-NOT NEEDED (unchanged)
-----------------------
-backdrop.py chatter.py paths.py
-voice.zip sounds/ textures/ fonts/ tutorial/ icons/ packaging/
-LICENSE.txt ART-AND-AUDIO.txt THIRD-PARTY-NOTICES.txt
+2-store/ ->  store/ 目录
+   github_readme.md              (覆盖，= README.md)
+   github_release_notes.md       (覆盖，= release-notes.md)
+   description_en.txt            (覆盖)
+   description_zh.txt            (覆盖)
+   description_ru.txt            (覆盖)
+   README.txt                    (覆盖)
+   announce_ru.txt               (覆盖)
+   shot_freeclimb.png            (覆盖，商店用截图)
+   shot_profiles.png             (覆盖，商店用截图)
 
-WHAT CHANGED
-------------
-1. Free Climb (new mode): clear the mountain once in Regular mode, then a button on the victory
-   screen and in the main menu opens the mountain as a sandbox. A map of the
-   whole climb sits in the top-right corner (click or M to expand), right-click
-   on it teleports the player to the nearest ledge. Achievements are disabled in
-   this mode, nothing is saved, and the summit air wall is off so you can jump
-   off. Also fixes: leaving the summit restores normal ice friction.
-2. Profiles (new accounts): each profile has its own 5 save slots, achievements,
-   cleared status and Free Climb unlock, in
-   %APPDATA%\A Slipery Climb\profiles\<id>\. Existing loose save/achievement
-   files are migrated into the first profile automatically. settings.json stays
-   global.
-3. Run timer: shown next to the Exit button, pauses while the Free Climb map is
-   open, stops at the summit, shown on the victory screen, stored in saves.
-4. Quit confirmation: menu Exit and the window close button ask first.
-5. Fixes: Esc returns to the menu from Saves / Settings / Profiles; all buttons
-   are blue again (in-game Exit, sliders, fullscreen toggle, language picker,
-   Free Climb buttons); "Back"/"Return" unified to "Back".
-6. Version bumps: version_info.txt and the macOS Info.plist in the workflow.
+3-workflow/ ->  .github/workflows/
+   build.yml                     (覆盖，macOS 版本号 1.5.0；三平台 Python 3.8)
 
-TAG TO PUBLISH
---------------
-v1.5.0
+4-screenshots/ ->  screenshots/ 目录
+   freeclimb_map.png             (覆盖，README 引用)
+   profiles.png                  (覆盖，README 引用)
 
-RELEASE TITLE
--------------
-A SLIPERY CLIMB · SUMMIT — 1.5.0 (first official release)
+提交说明建议：Release 1.5.0 "SUMMIT" — Free Climb, profiles, timer, update prompt
 
-RELEASE BODY
-------------
-Paste the contents of release-notes.md (already truncated to 1.5.0 notes).
 
-BEFORE TAGGING — mark every older release as pre-release
---------------------------------------------------------
-On GitHub: Releases -> v1.4.1 .. v1.0.0 -> Edit -> tick "Set as a pre-release"
--> Update release. Do this for all five older tags so 1.5.0 is the first
-official release.
+三、先给旧版本打 pre-release（如果还没打）
+------------------------------------------
+Releases -> 依次打开 v1.4.1、v1.4.0、v1.3.0、v1.2.0、v1.1.0、v1.0.0
+-> Edit -> 勾选 “Set as a pre-release” -> Update release。
+这样 1.5.0 才会是第一个正式版。
 
-AFTER THE TAG — CHECK THE RELEASE
----------------------------------
+
+四、重新发布 1.5.0
+------------------
+1. Releases -> Draft a new release
+2. Tag:      v1.5.0      （必须带 v，CI 用它生成 deb/rpm 版本号）
+   Target:   main
+3. Title:    A SLIPERY CLIMB · SUMMIT — 1.5.0 (first official release)
+4. 正文：把 release-notes.md 的全部内容粘贴进去
+5. 不要勾 pre-release；发布后确认它是 “Latest”
+6. Publish release -> Actions 里的 build 会自动跑
+
+注意：tag 名必须是 v1.5.0 这种 vX.Y.Z 形式，否则 deb/rpm 版本号会退回 1.0.0。
+不要重命名已有的 tag，旧下载链接会断。
+
+
+五、CI 跑完后检查（6 个产物）
+-----------------------------
 ASliperyClimb_Windows.zip
 ASliperyClimb_macOS.zip
 ASliperyClimb_Linux.tar.gz
@@ -87,11 +84,36 @@ ASliperyClimb_Linux_amd64.deb
 ASliperyClimb_Linux_x86_64.rpm
 SHA256SUMS.txt
 
-Checks:
-- Windows exe properties -> Details -> FileVersion / ProductVersion 1.5.0
-- macOS CFBundleShortVersionString -> 1.5.0
-- Start a run, clear the summit once, then use the Free Climb button and
-  right-click teleport on the map
-- Profiles: create a second profile, check its saves/achievements are separate
-- Timer shows next to Exit, pauses with the map open
-- Exit asks "Quit the game?"
+- Windows exe：右键属性 -> 详细信息 -> 文件版本 / 产品版本 = 1.5.0
+- macOS：Info.plist 里 CFBundleShortVersionString = 1.5.0
+- 主菜单右下角显示 v1.5.0 · SUMMIT
+
+六、更新提示怎么验证（重要）
+----------------------------
+发布后 1.5.0 已经是最新版，直接启动不会弹提示（这是对的）。想验证提示弹窗：
+1. 在本地源码里临时把 main.py 的 GAME_VERSION 改成更小的值（比如 "1.4.9"），
+   用 build.bat 打一个临时 exe，启动后应弹「发现新版本 v1.5.0」；
+2. 点「打开下载页」应打开 GitHub Releases；点「稍后」本次不再提示；
+   点「跳过此版本」后重启，不应再提示 1.5.0；
+3. 断网启动不应报错、也不提示（静默跳过）。
+（改完记得把 GAME_VERSION 改回 "1.5.0" 再上传。）
+
+七、本次改动摘要
+----------------
+- 新增玩法：自由攀登（常规模式首次通关解锁，全山地图 + 右键传送，不解锁成就、
+  不存档，山顶隐形墙关闭）
+- 新系统：账号（每账号独立存档/成就/通关；老数据自动迁移）
+- 新 UI：计时器、退出确认、版本号、圆角按钮；存档/设置/账号界面 Esc 返回
+- 新功能：启动时后台检查 GitHub Releases，有新版本时主菜单提示，可一键
+  打开下载页；「稍后」/「跳过此版本」；只连 api.github.com，不发送个人信息，
+  不自动下载/安装，断网静默跳过
+- 修 bug：自由攀登离开山顶后摩擦力恢复；山顶平台可传送；韩文/emoji 名字显示；
+  输入法改中文名；损坏存档不再崩溃
+- 打包：Python 3.8 + pygame 2.6.1 + PyInstaller 6.22.3，适配老电脑
+- 版本号：main.py GAME_VERSION、version_info.txt、macOS plist 全部 1.5.0
+
+八、SHA256 校验
+---------------
+PowerShell：
+  Get-Content .\_SHA256SUMS.txt | ForEach-Object { $h,$f = $_ -split '  '; if ((Get-FileHash $f -Algorithm SHA256).Hash -ne $h) { "MISMATCH $f" } }
+（_SHA256SUMS.txt 里记录了 1-root、store、workflow、screenshots 全部 26 个文件）

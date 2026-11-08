@@ -15,6 +15,7 @@ Players only need `README.md`.
 | `i18n.py` | 9-language strings and font selection |
 | `paths.py` | asset and user-data path resolution |
 | `profiles.py` | local player profiles (accounts): per-profile save/achievement folders |
+| `updater.py` | background update check against GitHub Releases (menu prompt) |
 | `textures/` | sprites and terrain tiles |
 | `sounds/` | music and sound effects |
 | `sounds/voice/` | unpacked voice clips (git-ignored, ship as `voice.zip`) |
@@ -29,6 +30,10 @@ Players only need `README.md`.
   `unzip voice.zip -d sounds` (Windows PowerShell:
   `Expand-Archive voice.zip -DestinationPath sounds`)
 - Start the game: `python main.py`
+- The update checker (`updater.py`) is disabled when running from source. To
+  test it: set `ASCLIMB_UPDATE_CHECK=1` for a real GitHub check, or
+  `ASCLIMB_FAKE_UPDATE='{"tag_name":"v9.9.9","html_url":"https://example.com"}'`
+  to fake a newer release, plus `ASCLIMB_FAKE_OPEN=1` so no browser opens.
 
 Python 3.8+ and pygame 2.6.1 are required. The release builds are made
 with Python 3.8 so the game still starts on older machines

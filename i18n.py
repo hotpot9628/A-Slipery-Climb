@@ -1527,6 +1527,86 @@ for _code, _kv in _FREE_CLIMB_INTRO.items():
     STRINGS[_code].update(_kv)
 
 
+# In-game update checker (GitHub Releases)
+UI_EN.update({
+    "update_title": "Update available",
+    "update_hint": "A new version {v} is available. Your saves and profiles "
+                   "stay as they are when you update.",
+    "update_download": "Open download page",
+    "update_later": "Later",
+    "update_skip": "Skip this version",
+    "update_privacy": "Only contacts GitHub Releases; no personal data is sent.",
+})
+_UPDATE_UI = {
+    "zh": {
+        "update_title": "发现新版本",
+        "update_hint": "有新版本 {v}。更新后存档和账号都会保留。",
+        "update_download": "打开下载页",
+        "update_later": "稍后",
+        "update_skip": "跳过此版本",
+        "update_privacy": "只连接 GitHub Releases 检查版本，不会发送任何个人信息。",
+    },
+    "ja": {
+        "update_title": "アップデートがあります",
+        "update_hint": "新しいバージョン {v} があります。更新してもセーブとプロフィールは残ります。",
+        "update_download": "ダウンロードページを開く",
+        "update_later": "あとで",
+        "update_skip": "このバージョンをスキップ",
+        "update_privacy": "GitHub Releases にしか接続せず、個人情報は送信しません。",
+    },
+    "ko": {
+        "update_title": "업데이트 있음",
+        "update_hint": "새 버전 {v}이(가) 있습니다. 업데이트해도 저장과 프로필은 유지됩니다.",
+        "update_download": "다운로드 페이지 열기",
+        "update_later": "나중에",
+        "update_skip": "이 버전 건너뛰기",
+        "update_privacy": "GitHub Releases에만 접속하며 개인정보는 보내지 않습니다.",
+    },
+    "ru": {
+        "update_title": "Доступно обновление",
+        "update_hint": "Вышла новая версия {v}. Сохранения и профили при обновлении не пострадают.",
+        "update_download": "Открыть страницу загрузки",
+        "update_later": "Позже",
+        "update_skip": "Пропустить эту версию",
+        "update_privacy": "Связь только с GitHub Releases, личные данные не отправляются.",
+    },
+    "de": {
+        "update_title": "Update verfügbar",
+        "update_hint": "Version {v} ist da. Spielstände und Profile bleiben beim Update erhalten.",
+        "update_download": "Downloadseite öffnen",
+        "update_later": "Später",
+        "update_skip": "Diese Version überspringen",
+        "update_privacy": "Verbindung nur zu GitHub Releases, keine persönlichen Daten.",
+    },
+    "fr": {
+        "update_title": "Mise à jour disponible",
+        "update_hint": "La version {v} est disponible. Tes sauvegardes et profils sont conservés lors de la mise à jour.",
+        "update_download": "Ouvrir la page de téléchargement",
+        "update_later": "Plus tard",
+        "update_skip": "Ignorer cette version",
+        "update_privacy": "Connexion uniquement à GitHub Releases, aucune donnée personnelle.",
+    },
+    "it": {
+        "update_title": "Aggiornamento disponibile",
+        "update_hint": "La versione {v} è disponibile. Salvataggi e profili restano quando aggiorni.",
+        "update_download": "Apri pagina di download",
+        "update_later": "Più tardi",
+        "update_skip": "Salta questa versione",
+        "update_privacy": "Si connette solo a GitHub Releases, nessun dato personale inviato.",
+    },
+    "es": {
+        "update_title": "Actualización disponible",
+        "update_hint": "Ya está la versión {v}. Las partidas y los perfiles se conservan al actualizar.",
+        "update_download": "Abrir página de descarga",
+        "update_later": "Más tarde",
+        "update_skip": "Omitir esta versión",
+        "update_privacy": "Solo contacta con GitHub Releases; no se envían datos personales.",
+    },
+}
+for _code, _kv in _UPDATE_UI.items():
+    STRINGS[_code].update(_kv)
+
+
 # Profile name editor: clipboard fallback when the IME candidate window is hidden
 UI_EN["profile_paste_hint"] = ("IME candidates not showing? Press Ctrl+V to paste "
                                "a name you typed elsewhere.")

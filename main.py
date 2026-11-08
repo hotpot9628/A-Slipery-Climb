@@ -11,6 +11,7 @@ import achievements
 import chatter
 import paths
 import profiles
+import updater
 # Register chatter translations (GameObject text renders via i18n.text)
 for _ci, _cen in enumerate(chatter.LINES["en"]):
     for _code, _lines in chatter.LINES.items():
@@ -2706,6 +2707,132 @@ def draw_menu():
     return menu_buttons()
 
 
+# ========== Update prompt (GitHub Releases) ==========
+def _update_font(size):
+    return i18n.get_font(max(10, int(size * i18n.scale())))
+
+
+def _update_dialog_state():
+    """'available' when the menu should show the prompt, otherwise None."""
+    if update_info is None or update_dismissed:
+        return None
+    if current_state != GameState.MENU or mode_dialog_slot is not None \
+            or pending_quit:
+        return None
+    if str(update_info.get("version") or "") == str(update_skipped or ""):
+        return None
+    return "available"
+
+
+def update_dialog_visible():
+    return _update_dialog_state() is not None
+
+
+def update_dialog_box():
+    box = pygame.Rect(0, 0, min(820, WIDTH - 60), min(340, HEIGHT - 60))
+    box.center = (WIDTH // 2, HEIGHT // 2)
+    return box
+
+
+def update_dialog_buttons(state):
+    if state != "available":
+        return []
+    box = update_dialog_box()
+    keys = [("download", "update_download"),
+            ("later", "update_later"),
+            ("skip", "update_skip")]
+    bw, bh, gap = 250, 54, 16
+    row_w = bw * len(keys) + gap * (len(keys) - 1)
+    if row_w > box.w - 60:
+        bw = max(150, (box.w - 60 - gap * (len(keys) - 1)) // len(keys))
+        row_w = bw * len(keys) + gap * (len(keys) - 1)
+    x0 = box.centerx - row_w // 2
+    y = box.bottom - 78
+    return [(key, i18n.ui(label_key),
+             pygame.Rect(x0 + i * (bw + gap), y, bw, bh))
+            for i, (key, label_key) in enumerate(keys)]
+
+
+def draw_update_dialog(screen, mouse_pos):
+    state = _update_dialog_state()
+    if state is None:
+        return
+    box = update_dialog_box()
+    veil = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    veil.fill((0, 0, 0, 175))
+    screen.blit(veil, (0, 0))
+    pygame.draw.rect(screen, (18, 22, 46), box, border_radius=16)
+    pygame.draw.rect(screen, (255, 214, 120), box, 2, border_radius=16)
+    title_font = _update_font(38)
+    body_font = _update_font(22)
+    small = _update_font(17)
+    title = title_font.render(i18n.ui("update_title"), True, WHITE)
+    screen.blit(title, title.get_rect(center=(box.centerx, box.y + 46)))
+    version = _update_font(30).render("v%s" % update_info.get("version", "?"),
+                                      True, (255, 226, 140))
+    screen.blit(version, version.get_rect(center=(box.centerx, box.y + 86)))
+    hint_lines = _wrap_lines(
+        i18n.ui("update_hint").format(v=update_info.get("version", "?")),
+        body_font, box.w - 80)[:4]
+    y = box.y + 140
+    for line in hint_lines:
+        surface = body_font.render(line, True, (224, 232, 252))
+        screen.blit(surface, surface.get_rect(center=(box.centerx, y)))
+        y += body_font.get_height() + 4
+    privacy = small.render(i18n.ui("update_privacy"), True, (140, 152, 188))
+    screen.blit(privacy, privacy.get_rect(center=(box.centerx, box.bottom - 122)))
+    for key, label, rect in update_dialog_buttons(state):
+        hovered = rect.collidepoint(mouse_pos)
+        pygame.draw.rect(screen, WHITE if hovered else LIGHT_BLUE, rect,
+                         border_radius=BTN_RADIUS)
+        pygame.draw.rect(screen, BLACK, rect, 2, border_radius=BTN_RADIUS)
+        surface = _fit_text(label, rect.width - 18, 34, BLACK)
+        screen.blit(surface, surface.get_rect(center=rect.center))
+
+
+def _update_dialog_action(key):
+    global update_dismissed, update_skipped
+    if key == "download":
+        updater.open_url(update_info.get("url"))
+        update_dismissed = True    # the browser is open; get out of the way
+    elif key in ("later", "close"):
+        update_dismissed = True
+    elif key == "skip":
+        update_skipped = str(update_info.get("version") or "")
+        update_dismissed = True
+        try:
+            SaveManager.save_settings(sound_volume, music_volume)
+        except Exception:
+            pass
+
+
+def handle_update_dialog_click(pos):
+    state = _update_dialog_state()
+    if state is None:
+        return False
+    for key, _label, rect in update_dialog_buttons(state):
+        if rect.collidepoint(pos):
+            _update_dialog_action(key)
+            return True
+    return True   # modal: swallow clicks on the menu behind the dialog
+
+
+def poll_update_check():
+    global update_info
+    if update_info is not None:
+        return
+    result = updater.poll()
+    if result.get("status") != "available":
+        return
+    info = result.get("info")
+    if not isinstance(info, dict):
+        return
+    version = str(info.get("version") or "")
+    if not version or version == str(update_skipped or ""):
+        return
+    update_info = info
+
+
 # ========== Tutorial screen ==========
 tutorial_page = 0
 TUTORIAL_PAGES = [('aim.png', 'Aim and throw', 'Hold the left mouse button to aim. The dotted line shows where the candy flies and where it will land.'), ('force.png', 'Throw strength', 'The bar under the character shows how strong this throw is. Aiming further away throws harder.'), ('move.png', 'Move with recoil', 'There is no walk key. Throw backwards to slide forward, and throw at your feet to jump.'), ('progress.png', 'Climb progress', 'The Santa on the left edge shows how high you have climbed.'), ('cursor.png', 'Find the pointer', 'There is no pointer while playing. Press Alt to toggle the cursor.')]
@@ -3472,7 +3599,8 @@ class SaveManager:
         settings_data = {"sound_volume": sound_vol, "music_volume": music_vol,
                          "voice_volume": voice_vol,
                          "language": i18n.current,
-                         "fullscreen": bool(fullscreen_mode)}
+                         "fullscreen": bool(fullscreen_mode),
+                         "skipped_update": update_skipped}
         try:
             _atomic_write_json(SETTINGS_FILE, settings_data)
             return True
@@ -3489,6 +3617,9 @@ class SaveManager:
             pass
         return None
 
+update_skipped = ""   # release version the player asked not to be reminded of
+update_info = None    # {"version": "...", "url": "...", "assets": {...}}
+update_dismissed = False
 settings = SaveManager.load_settings()
 if settings:
     sound_volume = settings.get("sound_volume", 0.7)
@@ -3497,6 +3628,7 @@ if settings:
     sound_manager.set_sound_volume(sound_volume)
     sound_manager.set_music_volume(music_volume)
     fullscreen_mode = bool(settings.get("fullscreen", fullscreen_mode))
+    update_skipped = str(settings.get("skipped_update", "") or "")
 
 i18n.set_lang(settings.get("language", "en") if settings else "en")
 pygame.display.set_caption(i18n.ui("game_title"))
@@ -5672,6 +5804,7 @@ def run_game():
     global profile_edit, pending_delete_profile, profile_notice, profile_notice_timer
     global profile_page
     global pending_quit, run_time
+    global update_info, update_dismissed
 
     # Hook the tutorial memory to the active profile's folder. flavor.py is
     # imported by the launcher right before run_game, so it exists by now.
@@ -5685,6 +5818,9 @@ def run_game():
     pending_quit = False
     profile_edit = None
     pending_delete_profile = None
+    update_info = None
+    update_dismissed = False
+    updater.start_check(GAME_VERSION)   # background; no-op when offline
     try:
         pygame.key.stop_text_input()   # no IME popup unless the name editor is open
     except Exception:
@@ -5733,6 +5869,8 @@ def run_game():
 
         if profile_notice_timer > 0.0:
             profile_notice_timer = max(0.0, profile_notice_timer - dt)
+
+        poll_update_check()   # background GitHub check, once per launch
         
         for event in pygame.event.get():
             flavor.handle_event(event)  # FLAVOR
@@ -5782,6 +5920,9 @@ def run_game():
                         if cutscene_kind != "win":
                             end_cutscene()
                     elif current_state == GameState.MENU:
+                        if update_dialog_visible():
+                            handle_update_dialog_click(event.pos)
+                            continue
                         if mode_dialog_slot is not None:
                             normal_rect, easy_rect, cancel_rect = mode_dialog_rects()
                             if normal_rect.collidepoint(event.pos):
@@ -6208,6 +6349,10 @@ def run_game():
                         current_state = GameState.MENU
                 elif current_state == GameState.MENU:
                     # Menu keyboard navigation
+                    if update_dialog_visible():
+                        if event.key == pygame.K_ESCAPE:
+                            update_dismissed = True
+                        continue
                     if mode_dialog_slot is not None:
                         if event.key == pygame.K_ESCAPE:
                             mode_dialog_slot = None
@@ -6440,6 +6585,7 @@ def run_game():
                 screen.blit(surface, surface.get_rect(center=rect.center))
             if mode_dialog_slot is not None:
                 draw_mode_dialog(screen, mouse_pos)
+            draw_update_dialog(screen, mouse_pos)
             draw_custom_cursor(screen, mouse_pos, True)
 
         elif current_state == GameState.TUTORIAL:
