@@ -1326,6 +1326,14 @@ window.cross_track = async function cross_track(trackid, url, flags) {
             break
         }
         try {
+            // GitHub Pages / CDN may gzip the file: the real body is longer
+            // than the advertised Content-Length, so grow the buffer.
+            if (!track.data || track.pos + value.length > track.data.length) {
+                var need = track.pos + value.length;
+                var grown = new Uint8Array(Math.max(need, (track.data ? track.data.length : 0) + 65536));
+                if (track.data) grown.set(track.data.subarray(0, track.pos));
+                track.data = grown;
+            }
             track.data.set(value, track.pos)
         } catch (x) {
             track.pos = -1
@@ -1336,7 +1344,7 @@ window.cross_track = async function cross_track(trackid, url, flags) {
 
     console.log(`${trackid}:${url} Received ${track.pos} of ${track.len} to ${track.path}`)
     if (track.type === "fs" ) {
-        FS.writeFile(track.path, track.data)
+        FS.writeFile(track.path, track.data.subarray(0, track.pos))
     }
 
 }
