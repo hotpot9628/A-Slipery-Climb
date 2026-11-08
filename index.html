@@ -580,6 +580,17 @@ frameborder="1"
             min-height: 24px;
         }
         #as-gate .status small { color: #8598c4; display: block; margin-top: 6px; }
+        #as-fs {
+            position: fixed; top: 10px; right: 12px; z-index: 120;
+            display: none; padding: 6px 12px; border-radius: 8px;
+            background: rgba(20, 24, 50, .55); color: #cfe0ff;
+            border: 1px solid rgba(173, 216, 230, .35);
+            font: 14px "Segoe UI", arial, sans-serif; cursor: pointer;
+            user-select: none; -webkit-user-select: none;
+        }
+        #as-fs:hover { background: rgba(40, 52, 96, .75); }
+        @media (pointer: coarse) { #as-fs { display: block; } }
+        :fullscreen #as-fs, :-webkit-full-screen #as-fs { display: none !important; }
         #as-gate .footer {
             position: absolute; bottom: 18px; width: 100%; text-align: center;
             color: #5f719c; font-size: clamp(11px, 1.2vw, 13px); letter-spacing: 1px;
@@ -605,6 +616,7 @@ frameborder="1"
                target="_blank">GitHub</a>
         </div>
     </div>
+    <div id="as-fs" title="Fullscreen / 全屏">&#9974; 全屏</div>
     <script>
         (function () {
             var gate = document.getElementById('as-gate');
@@ -643,7 +655,6 @@ frameborder="1"
             function begin() {
                 if (started) return;
                 started = true;
-                goFullscreen();
                 gate.classList.add('loading');
                 status.innerHTML = '加载中… · Loading…'
                     + '<small>第一次加载需要一点时间</small>';
@@ -656,6 +667,22 @@ frameborder="1"
                 gate.classList.add('hidden');
                 setTimeout(function () { gate.style.display = 'none'; }, 500);
             };
+            var fsBtn = document.getElementById('as-fs');
+            function updateFsButton() {
+                if (!fsBtn) return;
+                var active = !!(document.fullscreenElement
+                    || document.webkitFullscreenElement);
+                fsBtn.style.display = active ? 'none' : '';
+            }
+            if (fsBtn) {
+                fsBtn.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    goFullscreen();
+                    setTimeout(updateFsButton, 600);
+                });
+                document.addEventListener('fullscreenchange', updateFsButton);
+                document.addEventListener('webkitfullscreenchange', updateFsButton);
+            }
         })();
     </script>
 
