@@ -272,7 +272,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8"><meta name="as-build" content="35b62787b33b"><meta name="as-version" content="1.5.1">
+    <meta charset="UTF-8"><meta name="as-build" content="56e434a964f8"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -371,6 +371,34 @@ config = {
             window.AudioContext = Wrapped;
             if (window.webkitAudioContext) window.webkitAudioContext = Wrapped;
         }
+        // pygbag plays music/voice/sfx through HTMLAudioElement objects in
+        // this (main) thread, so mute those too until the player starts.
+        var audios = [];
+        var OrigAudio = window.Audio;
+        if (OrigAudio) {
+            function WrappedAudio(src) {
+                var el = new OrigAudio(src);
+                audios.push(el);
+                try { el.muted = window.__asStarted !== true; } catch (e) {}
+                return el;
+            }
+            WrappedAudio.prototype = OrigAudio.prototype;
+            window.Audio = WrappedAudio;
+        }
+        function syncMedia(active) {
+            audios.forEach(function (el) {
+                try {
+                    el.muted = !active;
+                    if (!active && !el.paused) el.pause();
+                } catch (e) {}
+            });
+        }
+        window.__asAudioElState = function () {
+            return audios.map(function (el) {
+                return { muted: el.muted, paused: el.paused };
+            });
+        };
+
         window.__asAudioActive = function (active) {
             contexts.forEach(function (ctx) {
                 try {
@@ -385,6 +413,7 @@ config = {
         function sync() {
             var active = window.__asStarted === true && !document.hidden;
             window.__asAudioActive(active);
+            syncMedia(active);
         }
         document.addEventListener('visibilitychange', sync);
         document.addEventListener('pointerdown', function () {
