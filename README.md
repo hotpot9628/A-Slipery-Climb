@@ -130,10 +130,23 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 
 - 包都不大（Windows 版约 27 MB），就算 GitHub 慢也能下完；快下完断掉的话，
   用浏览器「继续下载」，或者隔一会儿重试，不用从头再来。
-- 首次启动会弹「Windows 已保护你的电脑」——未签名程序的正常提示，点
-  **更多信息 → 仍要运行** 即可。macOS 见上面英文段落的说明。
 - 想确认下载没被改过：用同一次发布里的 `SHA256SUMS.txt` 对比（Windows 上
-  `certutil -hashfile 文件名 SHA256`）。
+  `certutil -hashfile 文件名 SHA256`，macOS / Linux 上 `sha256sum 文件名`）。
+
+### 首次启动（三个平台）
+
+游戏没有代码签名/公证，系统都会拦一下，这是正常的，不是报错：
+
+- **Windows**：弹「Windows 已保护你的电脑」→ 点 **更多信息** → **仍要运行**。
+- **macOS**：弹「无法打开，因为 Apple 无法检查其是否包含恶意软件」→
+  打开 **系统设置 → 隐私与安全性**，在「安全性」里点 **仍要打开**
+  （macOS 15 及更新版本）；或者在「终端」里执行一次
+  `xattr -dr com.apple.quarantine "A Slipery Climb.app"` 再双击。
+  注意：现在的 macOS 包是 Apple Silicon（M1/M2/M3 及以后）版本，
+  Intel Mac 暂时跑不了。
+- **Linux**：如果双击没反应，先在文件管理器里允许「作为程序执行」，或在终端
+  `chmod +x "A Slipery Climb/A Slipery Climb"` 再运行；用 `.deb` / `.rpm`
+  安装的版本不受影响。
 
 存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
 `~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
