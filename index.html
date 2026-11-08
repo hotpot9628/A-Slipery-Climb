@@ -272,7 +272,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8"><meta name="as-build" content="56e434a964f8"><meta name="as-version" content="1.5.1">
+    <meta charset="UTF-8"><meta name="as-build" content="06f868d0a681"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -388,8 +388,21 @@ config = {
         function syncMedia(active) {
             audios.forEach(function (el) {
                 try {
-                    el.muted = !active;
-                    if (!active && !el.paused) el.pause();
+                    if (!active) {
+                        // remember what was playing so we can resume it later
+                        if (!el.paused) el.__asWasPlaying = true;
+                        el.muted = true;
+                        if (!el.paused) el.pause();
+                    } else {
+                        el.muted = false;
+                        if (el.__asWasPlaying && el.paused) {
+                            el.__asWasPlaying = false;
+                            var playing = el.play();
+                            if (playing && playing.catch) {
+                                playing.catch(function () {});
+                            }
+                        }
+                    }
                 } catch (e) {}
             });
         }
@@ -417,9 +430,9 @@ config = {
         }
         document.addEventListener('visibilitychange', sync);
         document.addEventListener('pointerdown', function () {
-            if (window.__asStarted !== true) {
-                setTimeout(sync, 80);   // pygbag may try to resume on any tap
-            }
+            // any tap: re-apply the wanted state (also unblocks browsers that
+            // refuse to resume media without a fresh user gesture)
+            setTimeout(sync, 80);
         }, true);
         setInterval(function () {
             if (window.__asStarted !== true) sync();
