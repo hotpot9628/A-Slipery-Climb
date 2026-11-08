@@ -609,6 +609,19 @@ frameborder="1"
         }
         #as-gate .footer a { color: #93a9dc; text-decoration: none; }
         #as-gate .footer a:hover { color: #cfdcff; }
+        #as-download {
+            position: relative; display: flex; align-items: center; gap: 10px;
+            margin-top: 20px;
+        }
+        #as-download a {
+            display: inline-block; padding: 10px 20px; border-radius: 12px;
+            text-decoration: none; font-weight: bold; letter-spacing: .5px;
+            color: #101530; background: #add8e6; font-size: clamp(13px, 1.5vw, 16px);
+            border: 1px solid rgba(255, 255, 255, .25);
+            box-shadow: 0 6px 22px rgba(0, 0, 0, .35);
+        }
+        #as-download a:hover { background: #fff; }
+        #as-download small { color: #8fa3d6; font-size: clamp(11px, 1.3vw, 13px); }
         #as-install {
             position: relative; display: none; align-items: center; gap: 12px;
             margin-top: 18px; padding: 10px 14px 10px 16px;
@@ -645,6 +658,10 @@ frameborder="1"
         <div class="status" id="as-status">
             点击开始 · Click to start
             <small>浏览器需要一次点击才能播放声音</small>
+        </div>
+        <div id="as-download">
+            <a id="as-dl" href="#" target="_blank" rel="noopener">下载</a>
+            <small id="as-dl-note"></small>
         </div>
         <div id="as-install">
             <div class="txt" id="as-install-txt">
@@ -731,6 +748,43 @@ frameborder="1"
                 document.addEventListener('fullscreenchange', updateFsButton);
                 document.addEventListener('webkitfullscreenchange', updateFsButton);
             }
+
+            // ---------- download the native build for this device ----------
+            (function () {
+                var dl = document.getElementById('as-dl');
+                var note = document.getElementById('as-dl-note');
+                if (!dl) return;
+                var rawUa = navigator.userAgent || '';
+                var plat = (navigator.platform || '');
+                var rel = 'https://github.com/hotpot9628/A-Slipery-Climb/releases/latest/download/';
+                var all = 'https://github.com/hotpot9628/A-Slipery-Climb/releases/latest';
+                var label = '所有版本';
+                var file = '';
+                var hint = '桌面版可离线游玩';
+                var mobile = /Android|iPhone|iPad|iPod/i.test(rawUa)
+                    || navigator.maxTouchPoints > 0 && /Mobi/i.test(rawUa);
+                if (/Android/i.test(rawUa)) {
+                    label = '下载 Android 版';
+                    file = 'ASliperyClimb_Android.apk';
+                    hint = '手机安装包，可离线';
+                } else if (/Windows/i.test(rawUa) || /Win/i.test(plat)) {
+                    label = '下载 Windows 版';
+                    file = 'ASliperyClimb_Windows.zip';
+                } else if (/Macintosh|Mac OS X/i.test(rawUa)) {
+                    label = '下载 macOS 版';
+                    file = 'ASliperyClimb_macOS.zip';
+                } else if (/Linux/i.test(rawUa) || /Linux/i.test(plat)) {
+                    label = '下载 Linux 版';
+                    file = 'ASliperyClimb_Linux.tar.gz';
+                    hint = 'deb / rpm 见 Releases';
+                } else if (mobile) {
+                    label = '下载 Android 版';
+                    file = 'ASliperyClimb_Android.apk';
+                }
+                dl.textContent = label;
+                dl.href = file ? (rel + file) : all;
+                if (note) note.textContent = hint;
+            })();
 
             // ---------- "add to home screen" recommendation ----------
             var installBox = document.getElementById('as-install');
