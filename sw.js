@@ -8,7 +8,7 @@
 //     cache is only a fallback for offline play.
 // CACHE is bumped manually when the pygbag runtime itself changes.
 const CACHE = "asclimb-v2";
-const FILES = ["apple-touch-icon.png", "browserfs.min.js", "cover.png", "empty.html", "empty.ogg", "favicon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "index.html", "manifest.webmanifest", "python311/main.data", "python311/main.js", "python311/main.wasm", "pythonrc.py", "pythons.js", "repo/index-bi.json", "repo/index.json", "repo/pkg/pygame_static-1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/pkg/pygame_static_1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/repodata.json", "src.apk", "vt.js", "vt/xterm-addon-image.js", "vt/xterm.css", "vt/xterm.js", "vtx.js"];
+const FILES = ["apple-touch-icon.png", "browserfs.min.js", "build.json", "cover.png", "empty.html", "empty.ogg", "favicon.png", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "index.html", "manifest.webmanifest", "python311/main.data", "python311/main.js", "python311/main.wasm", "pythonrc.py", "pythons.js", "repo/index-bi.json", "repo/index.json", "repo/pkg/pygame_static-1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/pkg/pygame_static_1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/repodata.json", "src.apk", "vt.js", "vt/xterm-addon-image.js", "vt/xterm.css", "vt/xterm.js", "vtx.js"];
 const IMMUTABLE = ["browserfs.min.js", "empty.html", "empty.ogg", "python311/main.data", "python311/main.js", "python311/main.wasm", "repo/index-bi.json", "repo/index.json", "repo/pkg/pygame_static-1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/pkg/pygame_static_1.0-cp311-cp311-wasm32_bi_emscripten.whl", "repo/repodata.json", "vt.js", "vt/xterm-addon-image.js", "vt/xterm.css", "vt/xterm.js", "vtx.js"];
 
 function isImmutable(url) {
@@ -59,7 +59,12 @@ self.addEventListener("fetch", function (event) {
     if (request.mode === "navigate") {
         event.respondWith((async function () {
             try {
-                return await fetch(request);
+                const response = await fetch(request);
+                try {
+                    const cache = await caches.open(CACHE);
+                    cache.put("index.html", response.clone());
+                } catch (err) {}
+                return response;
             } catch (err) {
                 const cache = await caches.open(CACHE);
                 const hit = await cache.match("index.html");

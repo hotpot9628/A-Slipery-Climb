@@ -249,7 +249,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"><meta name="as-build" content="dbb8e8fec130"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -644,6 +644,12 @@ frameborder="1"
         }
         #as-update.show { display: block; }
         #as-update span { display: inline-block; margin-left: 4px; }
+        #as-version {
+            position: fixed; left: 12px; bottom: 10px; z-index: 120;
+            color: #7f92bf; font: 12px "Segoe UI", arial, sans-serif;
+            letter-spacing: .5px; pointer-events: none;
+        }
+        @media (max-height: 560px) { #as-version { font-size: 11px; bottom: 6px; left: 8px; } }
         @media (pointer: coarse) { #as-fs { display: block; } }
         :fullscreen #as-fs, :-webkit-full-screen #as-fs { display: none !important; }
         #as-gate .footer {
@@ -723,6 +729,7 @@ frameborder="1"
     </div>
     <div id="as-fs" title="Fullscreen / 全屏">&#9974; 全屏</div>
     <div id="as-update">新版本已就绪 · 点击刷新 <span>&#10227;</span></div>
+    <div id="as-version">网页版</div>
     <script>
         (function () {
             var gate = document.getElementById('as-gate');
@@ -861,6 +868,48 @@ frameborder="1"
                 dl.textContent = label;
                 dl.href = file ? (rel + file) : all;
                 if (note) note.textContent = hint;
+            })();
+
+            // ---------- which build is loaded / is it cached ----------
+            (function () {
+                var el = document.getElementById('as-version');
+                if (!el) return;
+                var metaBuild = document.querySelector('meta[name="as-build"]');
+                var metaVer = document.querySelector('meta[name="as-version"]');
+                var own = (metaBuild && metaBuild.content) || '';
+                var ver = (metaVer && metaVer.content) || '';
+                function show(text) { el.textContent = text; }
+                function buildText() {
+                    return (ver ? 'v' + ver + ' · ' : '') + 'build ' + own.slice(0, 8);
+                }
+                fetch('build.json', {cache: 'no-store'}).then(function (r) {
+                    return r.json();
+                }).then(function (server) {
+                    var same = own && server.build === own;
+                    if (!('caches' in window)) {
+                        show('网页版 ' + buildText());
+                        return;
+                    }
+                    caches.open('asclimb-v2').then(function (cache) {
+                        return cache.match('build.json');
+                    }).then(function (resp) {
+                        if (!resp) {
+                            show('网页版 ' + buildText() + ' · 离线缓存未完成');
+                            return;
+                        }
+                        return resp.json().then(function (cached) {
+                            if (cached.build === server.build) {
+                                show('网页版 ' + buildText() + ' · 离线已就绪');
+                            } else {
+                                show('网页版 ' + buildText() + ' · 有新版本，刷新后生效');
+                            }
+                        });
+                    }).catch(function () {
+                        show('网页版 ' + buildText());
+                    });
+                }).catch(function () {
+                    show('网页版 ' + buildText() + ' · 离线模式');
+                });
             })();
 
             // ---------- "add to home screen" recommendation ----------
