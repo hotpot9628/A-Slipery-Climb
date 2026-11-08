@@ -257,7 +257,7 @@ config = {
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0f24">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon.png">
 <script>
     // lets browsers offer "install app / add to home screen" (desktop icon)
@@ -704,9 +704,12 @@ frameborder="1"
                 status.innerHTML = '加载中… · Loading…'
                     + '<small>第一次加载需要一点时间</small>';
             }
-            ['pointerdown', 'touchstart', 'keydown'].forEach(function (evt) {
-                document.addEventListener(evt, begin, {once: false});
-            });
+            var startArea = document.getElementById('as-play');
+            if (startArea) {
+                startArea.addEventListener('pointerdown', begin);
+                startArea.addEventListener('touchstart', begin);
+            }
+            document.addEventListener('keydown', begin);
             window.as_climb_ready = function () {
                 if (!gate) return;
                 gate.classList.add('hidden');
@@ -735,6 +738,13 @@ frameborder="1"
             var installTxt = document.getElementById('as-install-txt');
             var installX = document.getElementById('as-install-x');
             var installEvent = null;
+            var _ua = navigator.userAgent || '';
+            var _ios = /iPad|iPhone|iPod/.test(_ua)
+                || (navigator.platform === 'MacIntel'
+                    && navigator.maxTouchPoints > 1);
+            var _android = /Android/i.test(_ua);
+            var _edge = /EdgA?\//i.test(_ua) || /Edg\//i.test(_ua);
+
             function installedAlready() {
                 try {
                     return window.matchMedia('(display-mode: fullscreen)').matches
@@ -754,9 +764,32 @@ frameborder="1"
             function hideInstallCard() {
                 if (installBox) installBox.classList.remove('show');
             }
+            function useInstructions() {
+                if (!installTxt) return;
+                if (_ios) {
+                    installTxt.innerHTML = '添加到主屏幕 · Add to Home Screen'
+                        + '<small>点浏览器下方「分享」→「添加到主屏幕」，以后从图标全屏打开</small>';
+                } else if (_android) {
+                    installTxt.innerHTML = '添加桌面图标 · Add to Home Screen'
+                        + '<small>点浏览器右上角「…」菜单 →「添加到主屏幕」或「安装应用」</small>';
+                } else {
+                    installTxt.innerHTML = '安装到桌面 · Install app'
+                        + '<small>使用浏览器地址栏里的安装图标即可</small>';
+                }
+                if (installBtn) installBtn.style.display = 'none';
+                showInstallCard();
+            }
+
             window.addEventListener('beforeinstallprompt', function (evt) {
+                if (!isPhone()) { return; }
                 evt.preventDefault();
                 installEvent = evt;
+                if (_edge) {
+                    // Edge Android's programmatic prompt opens system settings
+                    // instead of installing: show the menu instructions.
+                    useInstructions();
+                    return;
+                }
                 if (installTxt) {
                     installTxt.innerHTML = '安装到桌面 · Install app'
                         + '<small>全屏运行、手机横屏、下次一点就开</small>';
@@ -764,29 +797,29 @@ frameborder="1"
                 if (installBtn) installBtn.style.display = '';
                 showInstallCard();
             });
-            var _ua = navigator.userAgent || '';
-            var _ios = /iPad|iPhone|iPod/.test(_ua)
-                || (navigator.platform === 'MacIntel'
-                    && navigator.maxTouchPoints > 1);
             if (_ios && !installedAlready() && !installDismissed()) {
-                if (installTxt) {
-                    installTxt.innerHTML = '添加到主屏幕 · Add to Home Screen'
-                        + '<small>点下方分享按钮 → 添加到主屏幕，全屏打开</small>';
-                }
-                if (installBtn) installBtn.style.display = 'none';
-                showInstallCard();
+                useInstructions();
             }
             if (installBtn) {
                 installBtn.addEventListener('click', function (evt) {
                     evt.stopPropagation();
-                    if (!installEvent) return;
-                    installEvent.prompt();
-                    installEvent.userChoice.then(function (choice) {
-                        if (choice && choice.outcome === 'accepted') {
-                            hideInstallCard();
+                    if (!installEvent) { useInstructions(); return; }
+                    var prompted = installEvent;
+                    installEvent = null;
+                    try {
+                        prompted.prompt();
+                        if (prompted.userChoice && prompted.userChoice.then) {
+                            prompted.userChoice.then(function (choice) {
+                                if (choice && choice.outcome === 'accepted') {
+                                    hideInstallCard();
+                                }
+                            }).catch(function () {
+                                useInstructions();
+                            });
                         }
-                        installEvent = null;
-                    });
+                    } catch (e) {
+                        useInstructions();
+                    }
                 });
             }
             if (installX) {
