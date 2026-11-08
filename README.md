@@ -64,11 +64,9 @@ ride the moving platforms up the mountain.
 
 No Python or pygame installation is needed: the builds are self-contained.
 
-If GitHub is slow in your country, use a mirror from the
-**[mirror list in the 中文 section](#中文)** (Gitee / 蓝奏云). The files are the same.
-
-Throttled downloads hang around 100 KB/s and can stop at the end - if that
-happens, use a mirror instead of retrying GitHub.
+Every package is under 40 MB, so a slow connection still gets there. If the
+download stops near the end, resume it (browsers and `curl -C -` both do) or
+try again later instead of restarting from zero.
 
 > **macOS:** the current macOS build is for Apple Silicon (M1/M2/M3 and newer);
 > Intel Macs are not supported by that build yet.
@@ -128,21 +126,14 @@ and progress in `profiles\<id>\`. Remove the whole folder to reset everything
 Windows 下 `ASliperyClimb_Windows.zip`，解压后双击 `A Slipery Climb.exe`；
 macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，或 `ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`。
 
-### 国内下载（GitHub 打不开或很慢时）
+### 国内下载小提示
 
-国内直连 GitHub 下载 exe 经常几十 KB/s 甚至断掉，建议用镜像。文件完全一样：
-
-| 渠道 | 地址 | 说明 |
-|---|---|---|
-| GitHub（主） | [Releases 页面](../../releases/latest) | 最新版本，全球通用 |
-| Gitee 镜像 | [gitee.com/hotpot9628/A-Slipery-Climb/releases](https://gitee.com/hotpot9628/A-Slipery-Climb/releases) | 国内速度快 |
-| 蓝奏云 | 见 GitHub Releases 说明里的备用链接 | 网盘直链 |
-
-- 首次启动会弹「Windows 已保护你的电脑」——这是未签名程序的正常提示，点
-  **更多信息 → 仍要运行** 即可。macOS 见英文段落的说明。
+- 包都不大（Windows 版约 27 MB），就算 GitHub 慢也能下完；快下完断掉的话，
+  用浏览器「继续下载」，或者隔一会儿重试，不用从头再来。
+- 首次启动会弹「Windows 已保护你的电脑」——未签名程序的正常提示，点
+  **更多信息 → 仍要运行** 即可。macOS 见上面英文段落的说明。
 - 想确认下载没被改过：用同一次发布里的 `SHA256SUMS.txt` 对比（Windows 上
   `certutil -hashfile 文件名 SHA256`）。
-- 如果 GitHub 下载卡住，先别反复重试，换镜像更快。
 
 存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
 `~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
@@ -173,8 +164,9 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 (`ASliperyClimb_Linux.tar.gz`, `ASliperyClimb_Linux_amd64.deb`,
 `ASliperyClimb_Linux_x86_64.rpm`). Установка не нужна, Python не требуется.
 
-Если GitHub медленный, в китайском разделе выше есть зеркала (Gitee / 蓝奏云) —
-файлы те же. Проверить загрузку можно через `SHA256SUMS.txt` из того же релиза.
+Архивы небольшие (Windows-версия около 27 МБ), поэтому медленный GitHub всё
+равно дотянет загрузку; если она оборвалась в конце — продолжи её, а не начинай
+заново. Проверить загрузку можно через `SHA256SUMS.txt` из того же релиза.
 
 Настройки и сохранения: Windows `%APPDATA%\A Slipery Climb`; macOS
 `~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
