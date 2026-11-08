@@ -250,6 +250,31 @@ config = {
 
     <title>src</title>
     <meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<style>
+  html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+  #as-rotate { display: none; }
+  @media (orientation: portrait) and (pointer: coarse) {
+    #as-rotate {
+      display: flex; position: fixed; inset: 0; z-index: 300;
+      align-items: center; justify-content: center; flex-direction: column;
+      background: radial-gradient(circle at 50% 40%, #1b2350 0%, #0b0f24 70%);
+      color: #e8eeff; font-family: "Segoe UI", arial, sans-serif;
+      text-align: center; letter-spacing: 2px;
+    }
+    #as-rotate .icon { font-size: 64px; margin-bottom: 18px; animation: as-tilt 2s ease-in-out infinite; }
+    #as-rotate .big { font-size: 22px; margin-bottom: 8px; }
+    #as-rotate .small { font-size: 14px; color: #93a9dc; }
+  }
+  @keyframes as-tilt { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+</style>
+<div id="as-rotate">
+  <div class="icon">&#128241;</div>
+  <div class="big">请把手机横过来</div>
+  <div class="small">Rotate your phone to landscape</div>
+</div>
+
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="height=device-height, initial-scale=1.0">
