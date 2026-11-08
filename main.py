@@ -4986,9 +4986,12 @@ def _profile_menu_surface(name, max_width, base_size, color):
     prefix = i18n.ui("profiles") + ": "
     name = (name or "?")[:10]
     ui_scale = i18n.scale()
+    needs_cjk = _name_needs_cjk_font(name)
     for size in (base_size, 42, 36, 30, 26, 22, 18):
         label_font = i18n.get_font(max(10, int(size * ui_scale)))
-        name_font = _profile_name_font(size, name)
+        # Latin/Cyrillic names look best in the normal UI font; only CJK,
+        # kana or Hangul need the wider fallback font.
+        name_font = _profile_name_font(size, name) if needs_cjk else label_font
         head = label_font.render(prefix, True, color)
         tail = name_font.render(name, True, color)
         total = head.get_width() + tail.get_width()
