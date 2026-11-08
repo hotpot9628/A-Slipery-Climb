@@ -268,6 +268,21 @@ config = {
         });
     }
 </script>
+<script>
+    // Running inside the installed APK / home-screen app: no browser UI around us.
+    (function () {
+        var app = false;
+        try {
+            app = window.matchMedia('(display-mode: standalone)').matches
+                || window.matchMedia('(display-mode: fullscreen)').matches
+                || window.navigator.standalone === true
+                || (document.referrer || '').indexOf('android-app://') === 0;
+        } catch (e) {}
+        if (app) {
+            document.documentElement.classList.add('app-mode');
+        }
+    })();
+</script>
 <style>
   html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
   #as-rotate { display: none; }
@@ -727,6 +742,22 @@ frameborder="1"
                 startArea.addEventListener('touchstart', begin);
             }
             document.addEventListener('keydown', begin);
+
+            // pygbag starts Python on ANY page gesture; until the player taps the
+            // cover, swallow gestures outside it so the game cannot start from
+            // the background. Capture phase runs before pygbag's listeners.
+            function blockOutsideStart(evt) {
+                if (started || !startArea) return;
+                var target = evt.target;
+                if (target === startArea || startArea.contains(target)) return;
+                evt.preventDefault();
+                evt.stopImmediatePropagation();
+                evt.stopPropagation();
+            }
+            ['pointerdown', 'mousedown', 'touchstart', 'click'].forEach(
+                function (evtName) {
+                    window.addEventListener(evtName, blockOutsideStart, true);
+                });
             window.as_climb_ready = function () {
                 if (!gate) return;
                 gate.classList.add('hidden');
@@ -888,6 +919,35 @@ frameborder="1"
             window.addEventListener('appinstalled', hideInstallCard);
         })();
     </script>
+    <style>
+        /* installed app (APK / home screen): just a splash + tap to start */
+        html.app-mode #as-install,
+        html.app-mode #as-download,
+        html.app-mode #as-fs,
+        html.app-mode #as-gate .footer,
+        html.app-mode #as-gate .subtitle,
+        html.app-mode #as-gate .status small { display: none !important; }
+        html.app-mode #as-gate .title {
+            font-size: clamp(22px, 4.4vw, 46px); margin-bottom: 8px;
+            letter-spacing: 4px;
+        }
+        html.app-mode #as-gate img {
+            width: min(60vw, 640px); max-height: 56vh;
+        }
+        html.app-mode #as-gate .status { margin-top: 14px; }
+        @media (max-height: 560px) {
+            html #as-gate .title {
+                font-size: clamp(18px, 3.4vw, 32px); margin-bottom: 2px;
+            }
+            html #as-gate .subtitle,
+            html #as-gate .footer,
+            html #as-gate .status small { display: none; }
+            html #as-gate img { width: min(52vw, 420px); max-height: 44vh; }
+            html #as-gate .status { margin-top: 8px; font-size: 14px; }
+            html #as-download { margin-top: 10px; }
+            html #as-install { margin-top: 8px; padding: 8px 12px; }
+        }
+    </style>
 
 </body>
 </html>
