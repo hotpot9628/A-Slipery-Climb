@@ -35,6 +35,18 @@ victory screen. Saved runs keep their time.
 ### Quit confirmation
 Closing the window or pressing **Exit** asks "Quit the game?" first.
 
+### Update prompt
+The first official release already knows how to tell you about the next one:
+
+- at start-up the game quietly asks GitHub Releases for the newest version;
+  if there is something newer, the main menu shows "Update available" with
+  an **Open download page** button
+- **Later** hides it for this run; **Skip this version** remembers your choice
+  for that version only
+- only `https://api.github.com` is contacted - no personal data is sent, and
+  nothing is downloaded or installed automatically
+- offline or rate-limited? The game simply starts without a prompt
+
 ## Fixed in 1.5
 
 - **Esc** now returns to the menu from the Saves, Settings and Profiles screens
@@ -93,6 +105,15 @@ Closing the window or pressing **Exit** asks "Quit the game?" first.
 
 ### 退出确认
 点退出或关闭窗口时会先问一句“确定退出游戏吗？”。
+
+### 更新提示
+首个正式版就已经会提醒你下一次更新了：
+
+- 启动时后台悄悄向 GitHub Releases 查询最新版本；有新版本时主菜单会显示
+  「发现新版本」和「打开下载页」按钮
+- 「稍后」本次启动不再提示；「跳过此版本」只跳过这一个版本
+- 只连接 `https://api.github.com`，不发送任何个人信息，也不会自动下载/安装
+- 断网或被限流时静默跳过，不影响游戏
 
 ## 1.5 修复
 
@@ -154,6 +175,18 @@ Closing the window or pressing **Exit** asks "Quit the game?" first.
 
 ### Подтверждение выхода
 Закрытие окна или кнопка **«Выход»** сначала спрашивают «Выйти из игры?».
+
+### Проверка обновлений
+Первый официальный релиз уже умеет сообщать о следующем:
+
+- при запуске игра тихо спрашивает у GitHub Releases последнюю версию; если
+  есть новее, в главном меню появляется «Доступно обновление» и кнопка
+  **Открыть страницу загрузки**
+- **Позже** скрывает напоминание до конца запуска; **Пропустить эту версию**
+  запоминает выбор только для этой версии
+- связь только с `https://api.github.com`; личные данные не отправляются,
+  ничего не скачивается и не устанавливается автоматически
+- без сети или при лимите запросов игра просто запускается без напоминания
 
 ## Исправлено в 1.5
 

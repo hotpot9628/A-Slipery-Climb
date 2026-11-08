@@ -28,6 +28,8 @@ ride the moving platforms up the mountain.
   achievements off, no saving
 - **Profiles** — several players on one computer, each with their own saves,
   achievements, "cleared" status and Free Climb unlock
+- **Update prompt** — the menu tells you when a newer release exists and opens
+  the download page (GitHub Releases only; nothing is sent)
 - **Run timer** next to the Exit button, frozen on the victory screen
 - **Full voice-over in 9 languages** for idle chatter and fall taunts, with
   separate sound, music and voice volume sliders
@@ -103,6 +105,8 @@ and progress in `profiles\<id>\`. Remove the whole folder to reset everything
 - **自由攀登**：常规模式通关一次后解锁——右上角全山地图，右键传送到任意位置，
   不解锁成就、不占存档
 - **账号系统**：一台电脑多个玩家，各自独立的存档、成就、通关记录
+- **更新提示**：有新版本时主菜单会提示，并可直接打开下载页
+  （只连 GitHub Releases，不发送任何信息）
 - **计时器**：左上角显示本趟用时，登顶停表
 - 9 种语言（含中文），全程配音，音效/音乐/语音音量分开调
 - 全屏或窗口模式，所有界面按窗口大小自适应
@@ -129,6 +133,8 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 - **Лёгкий режим с 8 контрольными точками** или классический обычный режим
 - **Свободный подъём**: после первого прохождения в обычном режиме — карта всей горы и телепорт
   правым кликом, достижения отключены, сохранений нет
+- **Проверка обновлений**: меню сообщает о новой версии и открывает страницу
+  загрузки (только GitHub Releases, ничего не отправляется)
 - **Профили**: несколько игроков на одном компьютере, у каждого свои сохранения,
   достижения и прогресс
 - **Таймер**: время забега рядом с кнопкой выхода, останавливается на вершине
