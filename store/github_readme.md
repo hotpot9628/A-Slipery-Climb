@@ -64,8 +64,16 @@ ride the moving platforms up the mountain.
 
 No Python or pygame installation is needed: the builds are self-contained.
 
+Every package is under 40 MB, so a slow connection still gets there. If the
+download stops near the end, resume it (browsers and `curl -C -` both do) or
+try again later instead of restarting from zero.
+
 > **macOS:** the current macOS build is for Apple Silicon (M1/M2/M3 and newer);
 > Intel Macs are not supported by that build yet.
+
+Verify your download with `SHA256SUMS.txt` from the same release page
+(`certutil -hashfile ASliperyClimb_Windows.zip SHA256` on Windows,
+`sha256sum <file>` on Linux/macOS).
 
 ### First launch
 
@@ -118,6 +126,15 @@ and progress in `profiles\<id>\`. Remove the whole folder to reset everything
 Windows 下 `ASliperyClimb_Windows.zip`，解压后双击 `A Slipery Climb.exe`；
 macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，或 `ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`。
 
+### 国内下载小提示
+
+- 包都不大（Windows 版约 27 MB），就算 GitHub 慢也能下完；快下完断掉的话，
+  用浏览器「继续下载」，或者隔一会儿重试，不用从头再来。
+- 首次启动会弹「Windows 已保护你的电脑」——未签名程序的正常提示，点
+  **更多信息 → 仍要运行** 即可。macOS 见上面英文段落的说明。
+- 想确认下载没被改过：用同一次发布里的 `SHA256SUMS.txt` 对比（Windows 上
+  `certutil -hashfile 文件名 SHA256`）。
+
 存档位置：Windows `%APPDATA%\A Slipery Climb`；macOS
 `~/Library/Application Support/A Slipery Climb`；Linux `~/.local/share/A Slipery Climb`。
 设置在该文件夹里，每个账号的数据在 `profiles\<id>\` 下。
@@ -146,6 +163,10 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 (`ASliperyClimb_Windows.zip`), macOS (`ASliperyClimb_macOS.zip`), Linux
 (`ASliperyClimb_Linux.tar.gz`, `ASliperyClimb_Linux_amd64.deb`,
 `ASliperyClimb_Linux_x86_64.rpm`). Установка не нужна, Python не требуется.
+
+Архивы небольшие (Windows-версия около 27 МБ), поэтому медленный GitHub всё
+равно дотянет загрузку; если она оборвалась в конце — продолжи её, а не начинай
+заново. Проверить загрузку можно через `SHA256SUMS.txt` из того же релиза.
 
 Настройки и сохранения: Windows `%APPDATA%\A Slipery Climb`; macOS
 `~/Library/Application Support/A Slipery Climb`; Linux `~/.local/share/A Slipery Climb`.
