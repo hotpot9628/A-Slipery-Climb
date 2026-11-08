@@ -1,0 +1,54 @@
+A SLIPERY CLIMB — 1.5.1 热修复上传说明
+=====================================
+
+这是 1.5.1 的小修复包：10 个文件，分 3 个文件夹，SHA256 已逐个校验。
+
+修复内容：
+1) 主菜单「账号：<名字>」按钮在名字是拉丁/俄文字母时，字体和其他菜单按钮
+   不一致（偏细偏小）；中日韩名字仍自动使用兼容字体。
+2) 内置中文/韩文字体换成覆盖更全的版本（常用汉字 + 全部现代韩文音节），
+   修掉部分没有系统 CJK 字体的机器上缺字的问题。
+
+一、上传到仓库（GitHub 网页版）
+--------------------------------
+1-root/  ->  仓库根目录
+   main.py                  (覆盖，1.5.1)
+   version_info.txt         (覆盖，1.5.1)
+   release-notes.md         (覆盖，1.5.1 说明：EN / 中文 / Русский)
+   README.md                (覆盖，含首次启动说明)
+   UPLOAD-1.5.1.txt         (可选)
+   fonts/NotoSansSC-Regular-subset-v2.ttf   (覆盖，中文/日文字体)
+   fonts/NotoSansKR-Regular-subset-v2.ttf   (覆盖，韩文字体)
+
+2-store/ ->  store/ 目录
+   github_readme.md         (覆盖，= README.md)
+   github_release_notes.md  (覆盖，= release-notes.md)
+
+3-workflow/ ->  .github/workflows/
+   build.yml                (覆盖，macOS 版本号 1.5.1)
+
+提交说明建议：1.5.1 — fix profile name font in the menu
+
+二、发布 1.5.1
+--------------
+1. Releases -> Draft a new release
+2. Tag:      v1.5.1      （必须 vX.Y.Z，CI 用它生成 deb/rpm 版本号）
+   Target:   main
+3. Title:    A SLIPERY CLIMB · SUMMIT — 1.5.1
+4. 正文：粘贴新的 release-notes.md 全文
+5. 不要勾 pre-release
+6. Publish release -> Actions 自动构建
+
+不要动已有 tag，1.5.0 的下载链接保持可用。
+
+三、CI 跑完后检查
+-----------------
+- 6 个产物齐全；Windows 文件版本 / macOS plist / 游戏右下角 = 1.5.1
+- 1.5.0 的玩家启动游戏时，主菜单应弹「发现新版本 v1.5.1」——正好验证
+  更新提示功能；点「打开下载页」应到 1.5.1 发布页
+- 打开 1.5.1：主菜单「账号：xxx」字体和别的按钮一致（拉丁/俄文名）
+
+四、SHA256 校验
+---------------
+PowerShell：
+  Get-Content .\_SHA256SUMS.txt | ForEach-Object { $h,$f = $_ -split '  '; if ((Get-FileHash $f -Algorithm SHA256).Hash -ne $h) { "MISMATCH $f" } }

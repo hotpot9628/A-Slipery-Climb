@@ -129,7 +129,7 @@ class GameState(Enum):
     PROFILES = 8
 
 # Game constants
-GAME_VERSION = "1.5.0"
+GAME_VERSION = "1.5.1"
 GAME_CODENAME = "SUMMIT"
 ground_level = HEIGHT - 200
 
@@ -4964,6 +4964,45 @@ def _fit_profile_name(label, max_width, base_size, color):
     return surface
 
 
+def _name_needs_cjk_font(text):
+    """True when a profile name contains scripts the UI font cannot draw."""
+    for ch in text or "":
+        code = ord(ch)
+        if (0x2E80 <= code <= 0x9FFF          # CJK radicals / kana / ideographs
+                or 0xAC00 <= code <= 0xD7AF   # Hangul syllables
+                or 0x1100 <= code <= 0x11FF   # Hangul jamo
+                or 0xF900 <= code <= 0xFAFF   # CJK compatibility ideographs
+                or 0xFF00 <= code <= 0xFFEF): # fullwidth forms
+            return True
+    return False
+
+
+def _profile_menu_surface(name, max_width, base_size, color):
+    """Render 'Profiles: <name>' with two fonts.
+
+    The label part always uses the normal UI font; only the player's name falls
+    back to the CJK/Hangul font when it has to. Shrinks until it fits.
+    """
+    prefix = i18n.ui("profiles") + ": "
+    name = (name or "?")[:10]
+    ui_scale = i18n.scale()
+    for size in (base_size, 42, 36, 30, 26, 22, 18):
+        label_font = i18n.get_font(max(10, int(size * ui_scale)))
+        name_font = _profile_name_font(size, name)
+        head = label_font.render(prefix, True, color)
+        tail = name_font.render(name, True, color)
+        total = head.get_width() + tail.get_width()
+        if total <= max_width:
+            height = max(head.get_height(), tail.get_height())
+            surface = pygame.Surface((total, height), pygame.SRCALPHA)
+            surface.blit(head, (0, (height - head.get_height()) // 2))
+            surface.blit(tail, (head.get_width(),
+                                (height - tail.get_height()) // 2))
+            return surface
+    # extremely long name: drop it, like before
+    return _fit_text(i18n.ui("profiles"), max_width, base_size, color)
+
+
 def _clipboard_text():
     """Text from the OS clipboard (used for pasting IME-typed names)."""
     try:
@@ -6577,9 +6616,10 @@ def run_game():
                 pygame.draw.rect(screen, color, rect, border_radius=BTN_RADIUS)
                 pygame.draw.rect(screen, BLACK, rect, 2, border_radius=BTN_RADIUS)
                 if key == "profile":
-                    # the label embeds the player's name: CJK / Hangul safe font
-                    surface = _fit_profile_name(label, rect.width - 24, 48,
-                                                text_color)
+                    # label part and player name are rendered separately so the
+                    # name can use the CJK font without changing the label font
+                    surface = _profile_menu_surface(name, rect.width - 24, 48,
+                                                    text_color)
                 else:
                     surface = _fit_text(label, rect.width - 24, 48, text_color)
                 screen.blit(surface, surface.get_rect(center=rect.center))
