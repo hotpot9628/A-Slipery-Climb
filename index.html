@@ -256,6 +256,18 @@ config = {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0f24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<script>
+    // lets browsers offer "install app / add to home screen" (desktop icon)
+    if ('serviceWorker' in navigator
+            && location.protocol.indexOf('http') === 0) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+    }
+</script>
 <style>
   html, body { touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
   #as-rotate { display: none; }
@@ -597,6 +609,30 @@ frameborder="1"
         }
         #as-gate .footer a { color: #93a9dc; text-decoration: none; }
         #as-gate .footer a:hover { color: #cfdcff; }
+        #as-install {
+            position: relative; display: none; align-items: center; gap: 12px;
+            margin-top: 18px; padding: 10px 14px 10px 16px;
+            border-radius: 14px; max-width: min(78vw, 640px);
+            background: rgba(22, 28, 58, .86);
+            border: 1px solid rgba(140, 170, 235, .35);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            color: #dce6ff; font-size: clamp(12px, 1.5vw, 15px);
+            letter-spacing: .5px; text-align: left;
+        }
+        #as-install.show { display: flex; }
+        #as-install .txt small { display: block; margin-top: 3px; color: #93a7d4;
+            font-size: clamp(11px, 1.3vw, 13px); }
+        #as-install button {
+            flex: none; cursor: pointer; border: 0; border-radius: 10px;
+            padding: 9px 16px; font: inherit; font-weight: bold;
+            color: #101530; background: #add8e6;
+        }
+        #as-install button:hover { background: #fff; }
+        #as-install .x {
+            flex: none; cursor: pointer; border: 0; background: transparent;
+            color: #7f92bf; font-size: 18px; line-height: 1; padding: 4px 2px;
+        }
+        #as-install .x:hover { color: #dfe8ff; }
     </style>
 
     <div id="as-gate">
@@ -609,6 +645,15 @@ frameborder="1"
         <div class="status" id="as-status">
             点击开始 · Click to start
             <small>浏览器需要一次点击才能播放声音</small>
+        </div>
+        <div id="as-install">
+            <div class="txt" id="as-install-txt">
+                安装到桌面 · Install app
+                <small>全屏运行、手机横屏、下次一点就开</small>
+            </div>
+            <button id="as-install-btn" type="button">安装 / Install</button>
+            <button class="x" id="as-install-x" type="button"
+                    title="not now">&#10005;</button>
         </div>
         <div class="footer">
             made with Python &amp; pygame ·
@@ -683,6 +728,77 @@ frameborder="1"
                 document.addEventListener('fullscreenchange', updateFsButton);
                 document.addEventListener('webkitfullscreenchange', updateFsButton);
             }
+
+            // ---------- "add to home screen" recommendation ----------
+            var installBox = document.getElementById('as-install');
+            var installBtn = document.getElementById('as-install-btn');
+            var installTxt = document.getElementById('as-install-txt');
+            var installX = document.getElementById('as-install-x');
+            var installEvent = null;
+            function installedAlready() {
+                try {
+                    return window.matchMedia('(display-mode: fullscreen)').matches
+                        || window.matchMedia('(display-mode: standalone)').matches
+                        || window.navigator.standalone === true;
+                } catch (e) { return false; }
+            }
+            function installDismissed() {
+                try {
+                    return window.localStorage.getItem('as_install_x') === '1';
+                } catch (e) { return false; }
+            }
+            function showInstallCard() {
+                if (!installBox || installedAlready() || installDismissed()) return;
+                installBox.classList.add('show');
+            }
+            function hideInstallCard() {
+                if (installBox) installBox.classList.remove('show');
+            }
+            window.addEventListener('beforeinstallprompt', function (evt) {
+                evt.preventDefault();
+                installEvent = evt;
+                if (installTxt) {
+                    installTxt.innerHTML = '安装到桌面 · Install app'
+                        + '<small>全屏运行、手机横屏、下次一点就开</small>';
+                }
+                if (installBtn) installBtn.style.display = '';
+                showInstallCard();
+            });
+            var _ua = navigator.userAgent || '';
+            var _ios = /iPad|iPhone|iPod/.test(_ua)
+                || (navigator.platform === 'MacIntel'
+                    && navigator.maxTouchPoints > 1);
+            if (_ios && !installedAlready() && !installDismissed()) {
+                if (installTxt) {
+                    installTxt.innerHTML = '添加到主屏幕 · Add to Home Screen'
+                        + '<small>点下方分享按钮 → 添加到主屏幕，全屏打开</small>';
+                }
+                if (installBtn) installBtn.style.display = 'none';
+                showInstallCard();
+            }
+            if (installBtn) {
+                installBtn.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    if (!installEvent) return;
+                    installEvent.prompt();
+                    installEvent.userChoice.then(function (choice) {
+                        if (choice && choice.outcome === 'accepted') {
+                            hideInstallCard();
+                        }
+                        installEvent = null;
+                    });
+                });
+            }
+            if (installX) {
+                installX.addEventListener('click', function (evt) {
+                    evt.stopPropagation();
+                    hideInstallCard();
+                    try {
+                        window.localStorage.setItem('as_install_x', '1');
+                    } catch (e) {}
+                });
+            }
+            window.addEventListener('appinstalled', hideInstallCard);
         })();
     </script>
 
