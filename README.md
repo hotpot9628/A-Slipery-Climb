@@ -8,8 +8,9 @@ push you around: throw backwards to slide forwards, blast-jump over gaps, and
 ride the moving platforms up the mountain.
 
 ### [⬇ Download the latest release](../../releases/latest)
+### [▶ Play in your browser](https://hotpot9628.github.io/A-Slipery-Climb/)
 
-**1.5.0 “SUMMIT” — the first official release.**
+**1.5.1 “SUMMIT” — the first official release.**
 
 ![gameplay](screenshots/gameplay.png)
 ![the whole-mountain map in Free Climb](screenshots/freeclimb_map.png)
@@ -51,6 +52,10 @@ ride the moving platforms up the mountain.
 | Space / Enter | skip cutscene |
 | M | open / close the Free Climb map (Free Climb only) |
 | Right click on the map | teleport there (Free Climb only) |
+
+## Play in the browser
+
+No download, no install: **[https://hotpot9628.github.io/A-Slipery-Climb/](https://hotpot9628.github.io/A-Slipery-Climb/)** runs the same game in a desktop or mobile browser (WebAssembly build). Rotate your phone to landscape; on Android you can also install the APK from the [latest release](../../releases/latest) — it opens full-screen, without a browser address bar. Browser saves live in local storage, so clearing site data wipes them.
 
 ## Download
 
@@ -122,6 +127,10 @@ and progress in `profiles\<id>\`. Remove the whole folder to reset everything
 - 每个账号 5 个存档位，通关会删掉该存档
 - 退出游戏前会先确认
 
+**网页版（免下载）**：<https://hotpot9628.github.io/A-Slipery-Climb/> —— 电脑或手机浏览器直接玩，
+手机记得横屏。安卓也可以下载 [APK](../../releases/latest) 安装成应用，
+打开是全屏、没有地址栏。网页版的存档保存在浏览器里，清除站点数据会丢失。
+
 **下载**：到 [Releases](../../releases/latest) 页面按系统选：
 Windows 下 `ASliperyClimb_Windows.zip`，解压后双击 `A Slipery Climb.exe`；
 macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，或 `ASliperyClimb_Linux_amd64.deb` / `ASliperyClimb_Linux_x86_64.rpm`。
@@ -172,6 +181,12 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 - катсцены (можно пропустить), достижения с уровнями, 5 слотов сохранения на профиль
 - перед выходом игра спрашивает подтверждение
 
+**В браузере (без загрузки)**: <https://hotpot9628.github.io/A-Slipery-Climb/> — играется прямо в браузере
+на компьютере и телефоне (телефон держи горизонтально). Для Android в
+[последнем релизе](../../releases/latest) есть APK: открывается на весь
+экран, без адресной строки. Сохранения браузерной версии хранятся в
+браузере и пропадают при очистке данных сайта.
+
 **Скачать**: на странице [Releases](../../releases/latest) — Windows
 (`ASliperyClimb_Windows.zip`), macOS (`ASliperyClimb_macOS.zip`), Linux
 (`ASliperyClimb_Linux.tar.gz`, `ASliperyClimb_Linux_amd64.deb`,
@@ -207,6 +222,10 @@ macOS 用 `ASliperyClimb_macOS.zip`；Linux 用 `ASliperyClimb_Linux.tar.gz`，�
 ![cutscene](screenshots/cutscene.png)
 
 ## Made with
+
+The browser version is compiled from the same Python sources with
+[pygbag](https://github.com/pygame-web/pygbag) (Python on WebAssembly) and served from GitHub Pages.
+
 
 Built with Python 3.8 and Pygame 2.6 so older machines can still run
 it. This is a small solo project: the level is hand-built
