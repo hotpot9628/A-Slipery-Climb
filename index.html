@@ -249,7 +249,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"><meta name="as-build" content="b74e021498a3"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -264,7 +264,25 @@ config = {
     if ('serviceWorker' in navigator
             && location.protocol.indexOf('http') === 0) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('sw.js').catch(function () {});
+            navigator.serviceWorker.register('sw.js').then(function (reg) {
+                reg.addEventListener('updatefound', function () {
+                    var worker = reg.installing;
+                    if (!worker) return;
+                    worker.addEventListener('statechange', function () {
+                        if (worker.state === 'installed'
+                                && navigator.serviceWorker.controller
+                                && window.as_climb_show_update) {
+                            window.as_climb_show_update();
+                        }
+                    });
+                });
+            }).catch(function () {});
+            navigator.serviceWorker.addEventListener('message', function (event) {
+                var data = event.data || {};
+                if (data.type === 'as-offline-ready') {
+                    window.__asOfflineReady = true;
+                }
+            });
         });
     }
 </script>
@@ -616,6 +634,22 @@ frameborder="1"
             user-select: none; -webkit-user-select: none;
         }
         #as-fs:hover { background: rgba(40, 52, 96, .75); }
+        #as-update {
+            position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 200; display: none; cursor: pointer;
+            padding: 8px 16px; border-radius: 999px;
+            background: rgba(60, 90, 160, .92); color: #ffffff;
+            font: 14px "Segoe UI", arial, sans-serif; letter-spacing: .5px;
+            box-shadow: 0 8px 26px rgba(0, 0, 0, .45);
+        }
+        #as-update.show { display: block; }
+        #as-update span { display: inline-block; margin-left: 4px; }
+        #as-version {
+            position: fixed; left: 12px; bottom: 10px; z-index: 120;
+            color: #7f92bf; font: 12px "Segoe UI", arial, sans-serif;
+            letter-spacing: .5px; pointer-events: none;
+        }
+        @media (max-height: 560px) { #as-version { font-size: 11px; bottom: 6px; left: 8px; } }
         @media (pointer: coarse) { #as-fs { display: block; } }
         :fullscreen #as-fs, :-webkit-full-screen #as-fs { display: none !important; }
         #as-gate .footer {
@@ -694,9 +728,20 @@ frameborder="1"
         </div>
     </div>
     <div id="as-fs" title="Fullscreen / 全屏">&#9974; 全屏</div>
+    <div id="as-update">新版本已就绪 · 点击刷新 <span>&#10227;</span></div>
+    <div id="as-version">网页版</div>
     <script>
         (function () {
             var gate = document.getElementById('as-gate');
+            var updateToast = document.getElementById('as-update');
+            if (updateToast) {
+                updateToast.addEventListener('click', function () {
+                    window.location.reload();
+                });
+            }
+            window.as_climb_show_update = function () {
+                if (updateToast) updateToast.classList.add('show');
+            };
             var status = document.getElementById('as-status');
             var started = false;
             function isPhone() {
@@ -792,12 +837,23 @@ frameborder="1"
                 var label = '所有版本';
                 var file = '';
                 var hint = '桌面版可离线游玩';
-                var mobile = /Android|iPhone|iPad|iPod/i.test(rawUa)
-                    || navigator.maxTouchPoints > 0 && /Mobi/i.test(rawUa);
+                var touchMac = /Macintosh/i.test(rawUa)
+                    && (navigator.maxTouchPoints || 0) > 1;
                 if (/Android/i.test(rawUa)) {
                     label = '下载 Android 版';
                     file = 'ASliperyClimb_Android.apk';
                     hint = '手机安装包，可离线';
+                } else if (/iPhone|iPad|iPod/i.test(rawUa) || touchMac) {
+                    // no downloadable build for iOS: guide to home-screen install
+                    label = '添加到主屏幕 · iOS';
+                    file = '';
+                    hint = '分享按钮 → 添加到主屏幕';
+                    dl.addEventListener('click', function (evt) {
+                        evt.preventDefault();
+                        if (window.as_climb_install_hint) {
+                            window.as_climb_install_hint();
+                        }
+                    });
                 } else if (/Windows/i.test(rawUa) || /Win/i.test(plat)) {
                     label = '下载 Windows 版';
                     file = 'ASliperyClimb_Windows.zip';
@@ -808,13 +864,52 @@ frameborder="1"
                     label = '下载 Linux 版';
                     file = 'ASliperyClimb_Linux.tar.gz';
                     hint = 'deb / rpm 见 Releases';
-                } else if (mobile) {
-                    label = '下载 Android 版';
-                    file = 'ASliperyClimb_Android.apk';
                 }
                 dl.textContent = label;
                 dl.href = file ? (rel + file) : all;
                 if (note) note.textContent = hint;
+            })();
+
+            // ---------- which build is loaded / is it cached ----------
+            (function () {
+                var el = document.getElementById('as-version');
+                if (!el) return;
+                var metaBuild = document.querySelector('meta[name="as-build"]');
+                var metaVer = document.querySelector('meta[name="as-version"]');
+                var own = (metaBuild && metaBuild.content) || '';
+                var ver = (metaVer && metaVer.content) || '';
+                function show(text) { el.textContent = text; }
+                function buildText() {
+                    return (ver ? 'v' + ver + ' · ' : '') + 'build ' + own.slice(0, 8);
+                }
+                fetch('build.json', {cache: 'no-store'}).then(function (r) {
+                    return r.json();
+                }).then(function (server) {
+                    var same = own && server.build === own;
+                    if (!('caches' in window)) {
+                        show('网页版 ' + buildText());
+                        return;
+                    }
+                    caches.open('asclimb-v2').then(function (cache) {
+                        return cache.match('build.json');
+                    }).then(function (resp) {
+                        if (!resp) {
+                            show('网页版 ' + buildText() + ' · 离线缓存未完成');
+                            return;
+                        }
+                        return resp.json().then(function (cached) {
+                            if (cached.build === server.build) {
+                                show('网页版 ' + buildText() + ' · 离线已就绪');
+                            } else {
+                                show('网页版 ' + buildText() + ' · 有新版本，刷新后生效');
+                            }
+                        });
+                    }).catch(function () {
+                        show('网页版 ' + buildText());
+                    });
+                }).catch(function () {
+                    show('网页版 ' + buildText() + ' · 离线模式');
+                });
             })();
 
             // ---------- "add to home screen" recommendation ----------
@@ -864,6 +959,7 @@ frameborder="1"
                 if (installBtn) installBtn.style.display = 'none';
                 showInstallCard();
             }
+            window.as_climb_install_hint = useInstructions;
 
             window.addEventListener('beforeinstallprompt', function (evt) {
                 if (!isPhone()) { return; }
