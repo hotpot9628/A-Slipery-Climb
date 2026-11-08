@@ -249,7 +249,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8"><meta name="as-build" content="dbb8e8fec130"><meta name="as-version" content="1.5.1">
+    <meta charset="UTF-8"><meta name="as-build" content="9e44b54f0314"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -285,6 +285,12 @@ config = {
             });
         });
     }
+</script>
+<script>
+    // Python (in its worker) asks this to pause audio when the page is hidden.
+    window.as_climb_hidden = function () {
+        return document.hidden === true || document.visibilityState === "hidden";
+    };
 </script>
 <script>
     // Running inside the installed APK / home-screen app: no browser UI around us.
