@@ -66,8 +66,8 @@ jobs:
             --add-data "tutorial:tutorial" \
             main.py
           PLIST="dist/A Slipery Climb.app/Contents/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.5.0" "$PLIST" || true
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.5.0" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.5.1" "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion 1.5.1" "$PLIST" || true
           /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier games.hotpot9628.asliperyclimb" "$PLIST" || true
           cd dist
           cp ../LICENSE.txt ../ART-AND-AUDIO.txt ../THIRD-PARTY-NOTICES.txt .
