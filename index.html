@@ -1,4 +1,27 @@
-<html lang="en-us"><script src="./pythons.js" type=module id="site" data-python="cpython3.11" data-os="vtx,fs,snd,gui" async defer>#<!--
+<html lang="en-us">
+<script>
+// Registered before pygbag's own scripts: swallow page gestures outside the
+// cover, so the game cannot start from a click on the background.
+(function () {
+    window.__asStarted = false;
+    function allowed(target) {
+        return target && target.closest && target.closest(
+            '#as-play, #as-install, #as-download, #as-fs, #as-update, a, button');
+    }
+    function block(evt) {
+        if (window.__asStarted) return;
+        if (allowed(evt.target)) return;
+        evt.preventDefault();
+        evt.stopImmediatePropagation();
+        evt.stopPropagation();
+    }
+    ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'touchstart',
+     'touchend', 'click'].forEach(function (name) {
+        window.addEventListener(name, block, true);
+    });
+})();
+</script>
+<script src="./pythons.js" type=module id="site" data-python="cpython3.11" data-os="vtx,fs,snd,gui" async defer>#<!--
 
 print("""
 Loading src from src.apk
@@ -249,7 +272,7 @@ config = {
 </script>
 
     <title>src</title>
-    <meta charset="UTF-8"><meta name="as-build" content="9e44b54f0314"><meta name="as-version" content="1.5.1">
+    <meta charset="UTF-8"><meta name="as-build" content="4501448d6733"><meta name="as-version" content="1.5.1">
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -263,7 +286,7 @@ config = {
     // lets browsers offer "install app / add to home screen" (desktop icon)
     if ('serviceWorker' in navigator
             && location.protocol.indexOf('http') === 0) {
-        window.addEventListener('load', function () {
+        window.as_climb_register_sw = function () {
             navigator.serviceWorker.register('sw.js').then(function (reg) {
                 reg.addEventListener('updatefound', function () {
                     var worker = reg.installing;
@@ -283,13 +306,48 @@ config = {
                     window.__asOfflineReady = true;
                 }
             });
-        });
+        };
     }
+</script>
+<script>
+    // pygbag occasionally fails to start on a slow phone connection and shows
+    // a raw "Error occurred: Cannot read properties of ..." dialog. Reload
+    // once or twice instead; a fresh start almost always succeeds.
+    (function () {
+        window.alert = function (message) {
+            var text = String(message || '');
+            var bad = text.indexOf('Error occurred') === 0
+                || text.indexOf('Cannot read properties') >= 0;
+            if (bad) {
+                var tries = 0;
+                try {
+                    tries = parseInt(sessionStorage.getItem('as_retry') || '0', 10);
+                    sessionStorage.setItem('as_retry', String(tries + 1));
+                } catch (e) {}
+                if (tries < 2) {
+                    try {
+                        var status = document.getElementById('as-status');
+                        if (status) {
+                            status.innerHTML = '加载出错，正在自动重试…'
+                                + '<small>Retrying…</small>';
+                        }
+                    } catch (e) {}
+                    setTimeout(function () { window.location.reload(); }, 900);
+                    return;
+                }
+            }
+            try { console.warn('alert:', text); } catch (e) {}
+        };
+    })();
 </script>
 <script>
     // Python (in its worker) asks this to pause audio when the page is hidden.
     window.as_climb_hidden = function () {
         return document.hidden === true || document.visibilityState === "hidden";
+    };
+    // true until the player taps the cover: Python keeps the game idle then
+    window.as_climb_idle = function () {
+        return window.__asStarted !== true;
     };
 </script>
 <script>
@@ -656,7 +714,7 @@ frameborder="1"
             letter-spacing: .5px; pointer-events: none;
         }
         @media (max-height: 560px) { #as-version { font-size: 11px; bottom: 6px; left: 8px; } }
-        @media (pointer: coarse) { #as-fs { display: block; } }
+        #as-fs.show { display: block; }
         :fullscreen #as-fs, :-webkit-full-screen #as-fs { display: none !important; }
         #as-gate .footer {
             position: absolute; bottom: 18px; width: 100%; text-align: center;
@@ -783,6 +841,18 @@ frameborder="1"
             function begin() {
                 if (started) return;
                 started = true;
+                window.__asStarted = true;
+                var boot = document.getElementById('site');
+                if (boot && boot.getAttribute('type') === 'text/x-deferred') {
+                    var loader = document.createElement('script');
+                    for (var i = 0; i < boot.attributes.length; i += 1) {
+                        loader.setAttribute(boot.attributes[i].name,
+                                            boot.attributes[i].value);
+                    }
+                    loader.setAttribute('type', 'module');
+                    loader.textContent = boot.textContent;
+                    document.head.appendChild(loader);
+                }
                 gate.classList.add('loading');
                 status.innerHTML = '加载中… · Loading…'
                     + '<small>第一次加载需要一点时间</small>';
@@ -800,7 +870,13 @@ frameborder="1"
             function blockOutsideStart(evt) {
                 if (started || !startArea) return;
                 var target = evt.target;
-                if (target === startArea || startArea.contains(target)) return;
+                if (!target) return;
+                // the cover starts the game; buttons/links on the page stay usable
+                if (target.closest && target.closest(
+                        '#as-play, #as-install, #as-download, #as-fs, #as-update,'
+                        + ' a, button')) {
+                    return;
+                }
                 evt.preventDefault();
                 evt.stopImmediatePropagation();
                 evt.stopPropagation();
@@ -811,10 +887,35 @@ frameborder="1"
                 });
             window.as_climb_ready = function () {
                 if (!gate) return;
+                window.__asPythonReady = true;
+                try { sessionStorage.removeItem('as_retry'); } catch (e) {}
+                setTimeout(function () {
+                    if (window.as_climb_register_sw) {
+                        window.as_climb_register_sw();
+                    }
+                }, 2500);
+                if (!window.__asStarted) {
+                    // Python started from a stray tap: keep the start screen up
+                    var status = document.getElementById('as-status');
+                    if (status) {
+                        status.innerHTML = '点击封面开始 · Tap the cover to start'
+                            + '<small>游戏已就绪</small>';
+                    }
+                    return;
+                }
+                if (document.getElementById('as-fs')) {
+                    document.getElementById('as-fs').classList.remove('show');
+                }
                 gate.classList.add('hidden');
                 setTimeout(function () { gate.style.display = 'none'; }, 500);
             };
             var fsBtn = document.getElementById('as-fs');
+            try {
+                if (fsBtn && isPhone()
+                        && !document.documentElement.classList.contains('app-mode')) {
+                    fsBtn.classList.add('show');
+                }
+            } catch (e) {}
             function updateFsButton() {
                 if (!fsBtn) return;
                 var active = !!(document.fullscreenElement

@@ -13,6 +13,7 @@ window.BrowserFS.Buffer = BFSRequire('buffer')
 var bfs2 = false
 
 async function import_browserfs() {
+    if (typeof BrowserFS !== "undefined") { return; }
     console.warn("late import", config.cdn+"browserfs.min.js" )
     var script = document.createElement("script")
     script.src = vm.config.cdn + "browserfs.min.js"
